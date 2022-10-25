@@ -1,0 +1,38 @@
+{
+  "name": "devly/php-di",
+  "description": "PHP dependency injection container",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "Devly\\DI\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Devly\\DI\\Tests\\": "tests"
+    }
+  },
+  "require": {
+    "php": "^7.4",
+    "devly/repository": "^1.0"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^1.8",
+    "phpunit/phpunit": "^9.5",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.7.2",
+    "devly/coding-standard": "^1.0"
+  },
+  "scripts": {
+    "lint": "@php ./vendor/bin/phpcs",
+    "lint:report": "@php ./vendor/bin/phpcs --report=summary",
+    "lint:fix": "@php ./vendor/bin/phpcbf",
+    "analyze": "@php ./vendor/bin/phpstan",
+    "test": "@php ./vendor/bin/phpunit --testdox --colors=always"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}
