@@ -42,7 +42,10 @@ class Container implements IContainer, ArrayAccess
      * @var IContainer[]
      */
     private array $containers = [];
-    private bool $servicesBooted;
+    /**
+     * Whether the configured service providers booted
+     */
+    private bool $servicesBooted = false;
     private Repository $config;
     private IResolver $resolver;
     private bool $autowiringEnabled;
