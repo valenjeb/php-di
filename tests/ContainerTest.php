@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Devly\DI\Tests;
 
 use Devly\DI\Container;
+use Devly\DI\Contracts\IBootableServiceProvider;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Definition;
 use Devly\DI\Exceptions\AliasNotFoundError;
@@ -20,6 +21,7 @@ use Devly\DI\Tests\Fake\C;
 use Devly\DI\Tests\Fake\D;
 use Devly\DI\Tests\Fake\I;
 use Devly\DI\Tests\Fake\Provider;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -29,7 +31,16 @@ class ContainerTest extends TestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->container = new Container();
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        unset($this->container);
     }
 
     public function testDefineService(): void
@@ -330,6 +341,30 @@ class ContainerTest extends TestCase
         $this->container->registerServiceProvider(new Provider($this->container));
 
         $this->assertTrue($this->container->serviceProviderExists(Provider::class));
+    }
+
+    public function testRegisterServiceProviderThrowsInvalidArgumentException(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->container->registerServiceProvider(new stdClass()); // @phpstan-ignore-line
+    }
+
+    public function testRegisterServiceProviderWithClassImplementsBootableServiceProviderShouldPassTypeCheck(): void
+    {
+        $provider = new class implements IBootableServiceProvider {
+            public function boot(): void
+            {
+            }
+
+            public function bootDeferred(): void
+            {
+            }
+        };
+
+        $this->container->registerServiceProvider($provider);
+
+        $this->assertTrue(true);
     }
 
     public function testResolveObjectDefinedByServiceProvider(): void

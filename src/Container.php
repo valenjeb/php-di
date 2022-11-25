@@ -18,6 +18,7 @@ use Devly\DI\Exceptions\NotFoundError;
 use Devly\DI\Exceptions\ResolverError;
 use Devly\DI\Helpers\Utils;
 use Devly\Repository;
+use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 
@@ -527,6 +528,14 @@ class Container implements IContainer, ArrayAccess
      */
     public function registerServiceProvider($provider): void
     {
+        if (! $provider instanceof IServiceProvider && ! $provider instanceof IBootableServiceProvider) {
+            throw new InvalidArgumentException(sprintf(
+                'A service provider must implement at least "%s" or "%s".',
+                IServiceProvider::class,
+                IBootableServiceProvider::class
+            ));
+        }
+
         if ($provider instanceof IServiceProvider) {
             foreach ($provider->aliases() as $alias => $target) {
                 $this->alias($alias, $target);
