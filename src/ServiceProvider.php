@@ -19,6 +19,12 @@ abstract class ServiceProvider implements IServiceProvider, IBootableServiceProv
      * @var string[]
      */
     protected array $provides = [];
+    /**
+     * List of named aliases to services in the container.
+     *
+     * @var string[]
+     */
+    protected array $aliases = [];
 
     private IContainer $app;
 
@@ -53,5 +59,11 @@ abstract class ServiceProvider implements IServiceProvider, IBootableServiceProv
     public function mergeConfig($config): void
     {
         $this->app()->config()->merge($config);
+    }
+
+    /** @inheritdoc */
+    public function aliases(): array
+    {
+        return $this->aliases;
     }
 }

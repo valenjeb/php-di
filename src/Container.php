@@ -527,6 +527,12 @@ class Container implements IContainer, ArrayAccess
      */
     public function registerServiceProvider($provider): void
     {
+        if ($provider instanceof IServiceProvider) {
+            foreach ($provider->aliases() as $alias => $target) {
+                $this->alias($alias, $target);
+            }
+        }
+
         $this->serviceProviders[get_class($provider)] = $provider;
     }
 
