@@ -234,14 +234,22 @@ class Resolver implements IResolver
             }
         }
 
-        $b = $this->container->getContextualBindings($parameter->getDeclaringClass()->getName());
-
-        if (array_key_exists('$' . $parameter->getName(), $b)) {
-            return $this->checkProvidedValue($parameter, $reflectionNamedType, $b['$' . $parameter->getName()]);
+        $bindings       = [];
+        $declaringClass = $parameter->getDeclaringClass();
+        if ($declaringClass) {
+            $bindings = $this->container->getContextualBindings($declaringClass->getName());
         }
 
-        if ($reflectionNamedType && array_key_exists($reflectionNamedType->getName(), $b)) {
-            return $this->checkProvidedValue($parameter, $reflectionNamedType, $b[$reflectionNamedType->getName()]);
+        if (array_key_exists('$' . $parameter->getName(), $bindings)) {
+            return $this->checkProvidedValue($parameter, $reflectionNamedType, $bindings['$' . $parameter->getName()]);
+        }
+
+        if ($reflectionNamedType && array_key_exists($reflectionNamedType->getName(), $bindings)) {
+            return $this->checkProvidedValue(
+                $parameter,
+                $reflectionNamedType,
+                $bindings[$reflectionNamedType->getName()]
+            );
         }
 
         $error = null;
