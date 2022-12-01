@@ -343,6 +343,11 @@ class ContainerTest extends TestCase
         $this->assertTrue($this->container->serviceProviderExists(Provider::class));
     }
 
+    public function testGetSafeShouldReturnDefaultValueIfNotFound(): void
+    {
+        $this->assertEquals('foo', $this->container->getSafe('FakeService', 'foo'));
+    }
+
     public function testRegisterServiceProviderThrowsInvalidArgumentException(): void
     {
         $this->expectException(InvalidArgumentException::class);

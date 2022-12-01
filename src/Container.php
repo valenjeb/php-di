@@ -279,7 +279,7 @@ class Container implements IContainer, ArrayAccess
      * @throws NotFoundError   if no definition or an instance found for the provided key.
      * @throws ResolverError   if error occurred during resolve operation.
      * @throws DefinitionError if setup or return action is set, and is not a property name
-     *                             (prefixed with $) or a method name (prefixed with @).
+     *                         (prefixed with $) or a method name (prefixed with @).
      */
     public function get(string $key)
     {
@@ -323,6 +323,27 @@ class Container implements IContainer, ArrayAccess
         }
 
         return $this->instances[$key];
+    }
+
+    /**
+     * Retrieve an object or a value from the container or return default value if not found
+     *
+     * @param mixed $default
+     *
+     * @return mixed|null
+     *
+     * @throws DefinitionError if setup or return action is set, and is
+     *                         not a property name (prefixed with $) or
+     *                         a method name (prefixed with @).
+     * @throws ResolverError   if error occurred during resolve operation.
+     */
+    public function getSafe(string $key, $default = null)
+    {
+        try {
+            return $this->get($key);
+        } catch (NotFoundError $e) {
+            return $default;
+        }
     }
 
     /**
