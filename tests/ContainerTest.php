@@ -21,7 +21,6 @@ use Devly\DI\Tests\Fake\C;
 use Devly\DI\Tests\Fake\D;
 use Devly\DI\Tests\Fake\I;
 use Devly\DI\Tests\Fake\Provider;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -338,7 +337,7 @@ class ContainerTest extends TestCase
 
     public function testRegisterServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider($this->container));
+        $this->container->registerServiceProvider(new Provider());
 
         $this->assertTrue($this->container->serviceProviderExists(Provider::class));
     }
@@ -348,21 +347,10 @@ class ContainerTest extends TestCase
         $this->assertEquals('foo', $this->container->getSafe('FakeService', 'foo'));
     }
 
-    public function testRegisterServiceProviderThrowsInvalidArgumentException(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->container->registerServiceProvider(new stdClass()); // @phpstan-ignore-line
-    }
-
     public function testRegisterServiceProviderWithClassImplementsBootableServiceProviderShouldPassTypeCheck(): void
     {
         $provider = new class implements IBootableServiceProvider {
-            public function boot(): void
-            {
-            }
-
-            public function bootDeferred(): void
+            public function boot(IContainer $di): void
             {
             }
         };
@@ -374,7 +362,7 @@ class ContainerTest extends TestCase
 
     public function testResolveObjectDefinedByServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider($this->container));
+        $this->container->registerServiceProvider(new Provider());
 
         $this->assertEquals('foo', $this->container->get(A::class)->getText());
     }

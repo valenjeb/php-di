@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Devly\DI\Tests\Fake;
 
-use Devly\DI\ServiceProvider;
+use Devly\DI\Contracts\IContainer;
+use Devly\DI\Contracts\IServiceProvider;
 
-class Provider extends ServiceProvider
+use function in_array;
+
+class Provider implements IServiceProvider
 {
     /**
      * List of services provided by the service provider.
@@ -15,8 +18,13 @@ class Provider extends ServiceProvider
      */
     protected array $provides = [A::class];
 
-    public function register(): void
+    public function register(IContainer $di): void
     {
-        $this->app()->define(A::class)->setParam('text', 'foo');
+        $di->define(A::class)->setParam('text', 'foo');
+    }
+
+    public function provides(string $key): bool
+    {
+        return in_array($key, $this->provides);
     }
 }

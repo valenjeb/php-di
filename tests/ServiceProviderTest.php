@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Devly\DI\Tests;
 
 use Devly\DI\Container;
-use Devly\DI\Contracts\IContainer;
 use Devly\DI\Definition;
 use Devly\DI\Tests\Fake\A;
 use Devly\DI\Tests\Fake\B;
@@ -18,7 +17,7 @@ class ServiceProviderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->serviceProvider = new Provider(new Container());
+        $this->serviceProvider = new Provider();
     }
 
     public function testProvides(): void
@@ -27,23 +26,12 @@ class ServiceProviderTest extends TestCase
         $this->assertFalse($this->serviceProvider->provides(B::class));
     }
 
-    public function testGetContainerInstance(): void
-    {
-        $this->assertInstanceOf(IContainer::class, $this->serviceProvider->app());
-    }
-
     /** @noinspection PhpUnhandledExceptionInspection */
     public function testRegister(): void
     {
-        $this->serviceProvider->register();
+        $container = new Container();
+        $this->serviceProvider->register($container);
 
-        $this->assertInstanceOf(Definition::class, $this->serviceProvider->app()->getDefinition(A::class));
-    }
-
-    public function testMergeConfig(): void
-    {
-        $this->serviceProvider->mergeConfig(['foo' => 'bar']);
-
-        $this->assertEquals('bar', $this->serviceProvider->app()->config()->get('foo'));
+        $this->assertInstanceOf(Definition::class, $container->getDefinition(A::class));
     }
 }

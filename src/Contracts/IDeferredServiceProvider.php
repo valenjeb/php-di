@@ -1,0 +1,10 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Devly\DI\Contracts;
+
+interface IDeferredServiceProvider
+{
+    public function bootDeferred(IContainer $di): void;
+}

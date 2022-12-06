@@ -7,7 +7,9 @@ namespace Devly\DI;
 use ArrayAccess;
 use Closure;
 use Devly\DI\Contracts\IBootableServiceProvider;
+use Devly\DI\Contracts\IConfigProvider;
 use Devly\DI\Contracts\IContainer;
+use Devly\DI\Contracts\IDeferredServiceProvider;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Contracts\IServiceProvider;
 use Devly\DI\Exceptions\AliasNotFoundError;
@@ -18,7 +20,6 @@ use Devly\DI\Exceptions\NotFoundError;
 use Devly\DI\Exceptions\ResolverError;
 use Devly\DI\Helpers\Utils;
 use Devly\Repository;
-use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 
@@ -77,8 +78,12 @@ class Container implements IContainer, ArrayAccess
      * @var array<string, callable>
      */
     private array $afterResolve = [];
-    /** @var IServiceProvider[]|IBootableServiceProvider[] */
-    private array $serviceProviders = [];
+    /** @var IServiceProvider[] */
+    private array $registrableProviders = [];
+    /** @var IBootableServiceProvider[] */
+    protected array $bootableServices = [];
+    /** @var IDeferredServiceProvider[] */
+    protected array $deferredServices = [];
     /** @var array<string, true> */
     private array $skippedProviders = [];
     /**
@@ -545,30 +550,32 @@ class Container implements IContainer, ArrayAccess
     /**
      * Registers a service provider
      *
-     * @param IServiceProvider|IBootableServiceProvider $provider
+     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
      */
     public function registerServiceProvider($provider): void
     {
-        if (! $provider instanceof IServiceProvider && ! $provider instanceof IBootableServiceProvider) {
-            throw new InvalidArgumentException(sprintf(
-                'A service provider must implement at least "%s" or "%s".',
-                IServiceProvider::class,
-                IBootableServiceProvider::class
-            ));
+        if ($provider instanceof IConfigProvider) {
+            $provider->provideConfig($this);
         }
 
         if ($provider instanceof IServiceProvider) {
-            foreach ($provider->aliases() as $alias => $target) {
-                $this->alias($alias, $target);
-            }
+            $this->registrableProviders[get_class($provider)] = $provider;
         }
 
-        $this->serviceProviders[get_class($provider)] = $provider;
+        if ($provider instanceof IBootableServiceProvider) {
+            $this->bootableServices[] = $provider;
+        }
+
+        if (! $provider instanceof IDeferredServiceProvider) {
+            return;
+        }
+
+        $this->deferredServices[] = $provider;
     }
 
     public function serviceProviderExists(string $provider): bool
     {
-        return array_key_exists($provider, $this->serviceProviders);
+        return array_key_exists($provider, $this->registrableProviders);
     }
 
     /**
@@ -584,20 +591,12 @@ class Container implements IContainer, ArrayAccess
             throw new ContainerError('Services are already booted');
         }
 
-        foreach ($this->serviceProviders as $provider) {
-            if (! $provider instanceof IBootableServiceProvider) {
-                continue;
-            }
-
-            $provider->boot();
+        foreach ($this->bootableServices as $provider) {
+            $provider->boot($this);
         }
 
-        foreach ($this->serviceProviders as $provider) {
-            if (! $provider instanceof IBootableServiceProvider) {
-                continue;
-            }
-
-            $provider->bootDeferred();
+        foreach ($this->deferredServices as $provider) {
+            $provider->bootDeferred($this);
         }
 
         $this->servicesBooted = true;
@@ -730,7 +729,7 @@ class Container implements IContainer, ArrayAccess
     protected function findDefinition(string $key): bool
     {
         $found = false;
-        foreach ($this->serviceProviders as $provider) {
+        foreach ($this->registrableProviders as $provider) {
             $className = get_class($provider);
 
             if (isset($this->skippedProviders[$className]) || ! $provider instanceof IServiceProvider) {
@@ -741,7 +740,7 @@ class Container implements IContainer, ArrayAccess
                 continue;
             }
 
-            $provider->register();
+            $provider->register($this);
 
             $this->skippedProviders[$className] = true;
 

@@ -6,7 +6,5 @@ namespace Devly\DI\Contracts;
 
 interface IBootableServiceProvider
 {
-    public function boot(): void;
-
-    public function bootDeferred(): void;
+    public function boot(IContainer $di): void;
 }
