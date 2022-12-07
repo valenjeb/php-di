@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Devly\DI\Contracts;
 
-use Devly\DI\Exceptions\ResolverError;
+use Devly\DI\Exceptions\ResolverException;
 use Reflector;
 
 interface IResolver
@@ -15,7 +15,7 @@ interface IResolver
      *
      * @return mixed
      *
-     * @throws ResolverError
+     * @throws ResolverException
      */
     public function resolve($definition, array $args = []);
 }

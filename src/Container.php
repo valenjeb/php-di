@@ -12,12 +12,14 @@ use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\IDeferredServiceProvider;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Contracts\IServiceProvider;
-use Devly\DI\Exceptions\AliasNotFoundError;
-use Devly\DI\Exceptions\ContainerError;
-use Devly\DI\Exceptions\DefinitionError;
-use Devly\DI\Exceptions\DefinitionNotFoundError;
-use Devly\DI\Exceptions\NotFoundError;
-use Devly\DI\Exceptions\ResolverError;
+use Devly\DI\Exceptions\AliasNotFoundException;
+use Devly\DI\Exceptions\ContainerException;
+use Devly\DI\Exceptions\DefinitionException;
+use Devly\DI\Exceptions\DefinitionNotFoundException;
+use Devly\DI\Exceptions\InvalidDefinitionException;
+use Devly\DI\Exceptions\NotFoundException;
+use Devly\DI\Exceptions\OverwriteExistingServiceException;
+use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Helpers\Utils;
 use Devly\Repository;
 use ReflectionClass;
@@ -106,9 +108,6 @@ class Container implements IContainer, ArrayAccess
      *                                                           when not defined
      * @param bool                            $shared            Whether the container services should be
      *                                                           shared by default
-     *
-     * @throws ContainerError
-     * @throws DefinitionError
      */
     public function __construct($items = [], bool $autowiringEnabled = false, bool $shared = false)
     {
@@ -181,13 +180,13 @@ class Container implements IContainer, ArrayAccess
      *
      * @param Definition|callable|string|null $value
      *
-     * @throws ContainerError If an item with the given key already exists in the container.
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
+     * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
      */
     public function define(string $key, $value = null): Definition
     {
         if ($this->has($key)) {
-            throw new ContainerError(sprintf(
+            throw new OverwriteExistingServiceException(sprintf(
                 'Key "%s" already defined in this container. Use the extend() method' .
                 ' to extend its definition or override() to replace the existing definition.',
                 $key
@@ -206,8 +205,8 @@ class Container implements IContainer, ArrayAccess
      *
      * @param Definition|callable|string|null $value
      *
-     * @throws ContainerError If an item with the given key already exists in the container.
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
+     * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
      */
     public function defineShared(string $key, $value = null): Definition
     {
@@ -217,9 +216,9 @@ class Container implements IContainer, ArrayAccess
     /**
      * Define or override an object or a value in the container.
      *
-     * @param Definition|callable|string $value
+     * @param mixed $value
      *
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
      */
     public function override(string $key, $value = null): Definition
     {
@@ -235,11 +234,12 @@ class Container implements IContainer, ArrayAccess
     }
 
     /**
-     * Define or override a shared factory definition.
+     * Add a shared factory definition.
      *
-     * @param Definition|callable|string $value
+     * @param Definition|callable|string|null $value
      *
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
+     * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
      */
     public function overrideShared(string $key, $value = null): Definition
     {
@@ -249,12 +249,12 @@ class Container implements IContainer, ArrayAccess
     /**
      * Extend existing factory definition.
      *
-     * @throws NotFoundError If definition not found in the container.
+     * @throws NotFoundException If definition not found in the container.
      */
     public function extend(string $key): Definition
     {
         if (! $this->has($key)) {
-            throw new NotFoundError(sprintf(
+            throw new NotFoundException(sprintf(
                 'Key "%s" can not be extended because it is not defined in this container.',
                 $key
             ));
@@ -281,10 +281,9 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      *
-     * @throws NotFoundError   if no definition or an instance found for the provided key.
-     * @throws ResolverError   if error occurred during resolve operation.
-     * @throws DefinitionError if setup or return action is set, and is not a property name
-     *                         (prefixed with $) or a method name (prefixed with @).
+     * @throws NotFoundException If definition not found in the container, and it could
+     *                           not be resolved automatically.
+     * @throws ResolverException if error occurs during resolving.
      */
     public function get(string $key)
     {
@@ -293,18 +292,18 @@ class Container implements IContainer, ArrayAccess
                 $key = $this->getAlias($key);
 
                 return $this->get($key);
-            } catch (AliasNotFoundError $e) {
+            } catch (AliasNotFoundException $e) {
             }
 
             if (! $this->findDefinition($key)) {
                 if (! $this->autowiringEnabled) {
-                    throw new NotFoundError(sprintf('Key "%s" is not found in this container.', $key));
+                    throw new NotFoundException(sprintf('Key "%s" is not found in this container.', $key));
                 }
 
                 try {
                     $this->define($key);
-                } catch (DefinitionError $e) {
-                    throw new NotFoundError(sprintf(
+                } catch (DefinitionException $e) {
+                    throw new NotFoundException(sprintf(
                         'Key "%s" is not found in this container and could not be' .
                         ' defined automatically using autowiring.',
                         $key
@@ -324,7 +323,7 @@ class Container implements IContainer, ArrayAccess
 
                 $this->instance($key, $resolved);
             }
-        } catch (DefinitionNotFoundError $e) {
+        } catch (DefinitionNotFoundException $e) {
         }
 
         return $this->instances[$key];
@@ -337,16 +336,13 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed|null
      *
-     * @throws DefinitionError if setup or return action is set, and is
-     *                         not a property name (prefixed with $) or
-     *                         a method name (prefixed with @).
-     * @throws ResolverError   if error occurred during resolve operation.
+     * @throws ResolverException if error occurred during resolve operation.
      */
     public function getSafe(string $key, $default = null)
     {
         try {
             return $this->get($key);
-        } catch (NotFoundError $e) {
+        } catch (NotFoundException $e) {
             return $default;
         }
     }
@@ -362,8 +358,8 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      *
-     * @throws DefinitionNotFoundError if no definition found for the provided key.
-     * @throws ResolverError          if error occurred during resolve operation.
+     * @throws NotFoundException if no definition found for the provided key.
+     * @throws ResolverException if error occurred during resolve operation.
      */
     public function make(string $key)
     {
@@ -377,8 +373,8 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      *
-     * @throws DefinitionNotFoundError if no definition found for the provided key.
-     * @throws ResolverError if error occurred during resolve operation.
+     * @throws NotFoundException if no definition found for the provided key.
+     * @throws ResolverException if error occurred during resolve operation.
      */
     public function makeWith(string $key, array $args)
     {
@@ -387,18 +383,18 @@ class Container implements IContainer, ArrayAccess
                 $key = $this->getAlias($key);
 
                 return $this->makeWith($key, $args);
-            } catch (AliasNotFoundError $e) {
+            } catch (AliasNotFoundException $e) {
             }
 
             if (! $this->findDefinition($key)) {
                 if (! $this->autowiringEnabled) {
-                    throw new DefinitionNotFoundError(sprintf('No definition found for key "%s".', $key));
+                    throw new NotFoundException(sprintf('No definition found for key "%s".', $key));
                 }
 
                 try {
                     $this->define($key);
-                } catch (DefinitionError $e) {
-                    throw new DefinitionNotFoundError(sprintf(
+                } catch (DefinitionException $e) {
+                    throw new NotFoundException(sprintf(
                         'No definition found for key "%s" and it could not be defined automatically using autowiring.',
                         $key
                     ), 0, $e);
@@ -419,7 +415,7 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      *
-     * @throws ResolverError if error occurred during resolving.
+     * @throws ResolverException if error occurred during resolving.
      */
     public function call($callbackOrClassName, array $args = [])
     {
@@ -433,8 +429,8 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      *
-     * @throws ResolverError   if error occurs during resolving.
-     * @throws DefinitionError if setup or return action is set, and is not
+     * @throws ResolverException   if error occurs during resolving.
+     * @throws DefinitionException if setup or return action is set, and is not
      *                             a property name (prefixed with $) or a method
      *                             name (prefixed with @).
      */
@@ -457,9 +453,6 @@ class Container implements IContainer, ArrayAccess
      * Retrieves contextual bindings for the provided abstract name
      *
      * @return array<string|int, mixed>
-     *
-     * @throws ContainerError if provided abstract name is not a fully qualified class name.
-     * @throws DefinitionError
      */
     public function getContextualBindings(string $abstract): array
     {
@@ -478,7 +471,7 @@ class Container implements IContainer, ArrayAccess
                     } else {
                         $value = $this->call($value);
                     }
-                } catch (ResolverError $e) {
+                } catch (ResolverException $e) {
                 }
 
                 $resolved[$binding] = $value;
@@ -491,12 +484,12 @@ class Container implements IContainer, ArrayAccess
     /**
      * Drop a service definition and its instance from the container
      *
-     * @throws NotFoundError if service name does not exist in the container.
+     * @throws NotFoundException if service name does not exist in the container.
      */
     public function forget(string $name): void
     {
         if (! $this->has($name)) {
-            throw new NotFoundError(sprintf('Service "%s" does not exist in the container.', $name));
+            throw new NotFoundException(sprintf('Service "%s" does not exist in the container.', $name));
         }
 
         if (isset($this->definitions[$name])) {
@@ -583,12 +576,12 @@ class Container implements IContainer, ArrayAccess
      *
      * Run boot() & bootDeferred() methods for each bootable service provider set in the container.
      *
-     * @throws ContainerError
+     * @throws ContainerException
      */
     public function bootServices(): void
     {
         if ($this->servicesBooted) {
-            throw new ContainerError('Services are already booted');
+            throw new ContainerException('Services are already booted');
         }
 
         foreach ($this->bootableServices as $provider) {
@@ -612,12 +605,12 @@ class Container implements IContainer, ArrayAccess
     /**
      * Retrieves the target service for the provided key
      *
-     * @throws AliasNotFoundError if alias name does not exist.
+     * @throws AliasNotFoundException if alias name does not exist.
      */
     public function getAlias(string $key): string
     {
         if (! $this->isAlias($key)) {
-            throw new AliasNotFoundError(sprintf('Alias name "%s" does not exist.', $key));
+            throw new AliasNotFoundException(sprintf('Alias name "%s" does not exist.', $key));
         }
 
         return $this->aliases[$key];
@@ -655,16 +648,16 @@ class Container implements IContainer, ArrayAccess
     {
         try {
             $needs = $this->getAlias($needs);
-        } catch (AliasNotFoundError $e) {
+        } catch (AliasNotFoundException $e) {
         }
 
         $this->contextual[$concrete][$needs] = $implementation;
     }
 
     /**
-     * @return mixed
+     * Find contextual bindings for the provided abstract
      *
-     * @throws ContainerError if provided abstract name is not a fully qualified class name.
+     * @return mixed
      */
     public function findContextualBinding(string $abstract)
     {
@@ -675,7 +668,7 @@ class Container implements IContainer, ArrayAccess
         try {
             $rc = new ReflectionClass($abstract);
         } catch (ReflectionException $e) {
-            throw new ContainerError($e->getMessage());
+            throw new ContainerException($e->getMessage());
         }
 
         $parent = $rc->getParentClass();
@@ -715,12 +708,12 @@ class Container implements IContainer, ArrayAccess
     /**
      * Get a service factory definition
      *
-     * @throws DefinitionNotFoundError if definition does not exist in the container.
+     * @throws DefinitionNotFoundException if definition does not exist in the container.
      */
     public function getDefinition(string $name): Definition
     {
         if (! $this->hasDefinition($name) && ! $this->findDefinition($name)) {
-            throw new DefinitionNotFoundError('Service definition ' . $name . ' does not exist in the container.');
+            throw new DefinitionNotFoundException('Service definition ' . $name . ' does not exist in the container.');
         }
 
         return $this->definitions[$name];
@@ -758,7 +751,7 @@ class Container implements IContainer, ArrayAccess
                 $this->define($key, $definition);
 
                 return true;
-            } catch (DefinitionNotFoundError $e) {
+            } catch (DefinitionNotFoundException $e) {
             }
         }
 
@@ -788,10 +781,6 @@ class Container implements IContainer, ArrayAccess
      * @param string $offset
      *
      * @return mixed
-     *
-     * @throws DefinitionError
-     * @throws NotFoundError
-     * @throws ResolverError
      */
     public function offsetGet($offset)
     {
@@ -803,9 +792,6 @@ class Container implements IContainer, ArrayAccess
      *
      * @param string $offset
      * @param mixed  $value
-     *
-     * @throws ContainerError
-     * @throws DefinitionError
      */
     public function offsetSet($offset, $value): void
     {
@@ -816,8 +802,6 @@ class Container implements IContainer, ArrayAccess
      * Drops a service definition and its instance from the container
      *
      * @param string $offset
-     *
-     * @throws NotFoundError
      */
     public function offsetUnset($offset): void
     {

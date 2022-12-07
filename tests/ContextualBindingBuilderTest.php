@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 
 class ContextualBindingBuilderTest extends TestCase
 {
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testGiveConfig(): void
     {
         $container = new Container([], true);
@@ -28,7 +27,6 @@ class ContextualBindingBuilderTest extends TestCase
 
     public function testGiveClassName(): void
     {
-        /** @noinspection PhpUnhandledExceptionInspection */
         $container = new Container([], true);
 
         $container->when(C::class)->needs(I::class)->give(B::class);
@@ -40,14 +38,12 @@ class ContextualBindingBuilderTest extends TestCase
 
     public function testGiveClosure(): void
     {
-        /** @noinspection PhpUnhandledExceptionInspection */
         $container = new Container([], true);
 
         $container->when(C::class)
             ->needs(I::class)
             ->give(static fn () => new B());
 
-        /** @noinspection PhpUnhandledExceptionInspection */
         $logger = $container->get(C::class);
 
         $this->assertInstanceOf(C::class, $logger);

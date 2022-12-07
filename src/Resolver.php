@@ -7,8 +7,8 @@ namespace Devly\DI;
 use Closure;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\IResolver;
-use Devly\DI\Exceptions\FailedResolveParameter;
-use Devly\DI\Exceptions\ResolverError;
+use Devly\DI\Exceptions\FailedResolveParameterException;
+use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Helpers\Obj;
 use ReflectionClass;
 use ReflectionException;
@@ -21,6 +21,7 @@ use Throwable;
 
 use function array_filter;
 use function array_key_exists;
+use function assert;
 use function class_exists;
 use function class_implements;
 use function class_parents;
@@ -47,8 +48,7 @@ class Resolver implements IResolver
      *
      * @return mixed
      *
-     * @throws ResolverError
-     * @throws ReflectionException
+     * @throws ResolverException
      *
      * @template T of object
      */
@@ -78,7 +78,7 @@ class Resolver implements IResolver
         $message = 'The first %s::resolver() parameter can be an instance of ReflectionClass, ReflectionMethod'
                  . ' or ReflectionFunction. Provided %s';
 
-        throw new ResolverError(sprintf($message, self::class, get_class($reflection)));
+        throw new ResolverException(sprintf($message, self::class, get_class($reflection)));
     }
 
     /**
@@ -87,15 +87,14 @@ class Resolver implements IResolver
      *
      * @return object Resolved object
      *
-     * @throws ResolverError
-     * @throws ReflectionException
+     * @throws ResolverException
      *
      * @template T of object
      */
     protected function resolveClassDefinition(ReflectionClass $class, array $args = []): object
     {
         if (! $class->isInstantiable()) {
-            throw new ResolverError(sprintf('Class "%s" is not instantiable.', $class->getName()));
+            throw new ResolverException(sprintf('Class "%s" is not instantiable.', $class->getName()));
         }
 
         $construct = $class->getConstructor();
@@ -104,7 +103,7 @@ class Resolver implements IResolver
             try {
                 $object = $class->newInstance();
             } catch (ReflectionException $e) {
-                throw new ResolverError(sprintf(
+                throw new ResolverException(sprintf(
                     'Class %s could not be instantiated: %s.',
                     $class->name,
                     $e->getMessage()
@@ -113,14 +112,14 @@ class Resolver implements IResolver
         } else {
             try {
                 $resolveParameters = $this->resolveParameters($construct->getParameters(), $args);
-            } catch (FailedResolveParameter $e) {
-                throw new ResolverError($e->getMessage(), $e->getCode(), $e);
+            } catch (FailedResolveParameterException $e) {
+                throw new ResolverException($e->getMessage(), $e->getCode(), $e);
             }
 
             try {
                 $object = $class->newInstanceArgs($resolveParameters);
             } catch (ReflectionException $e) {
-                throw new ResolverError(sprintf(
+                throw new ResolverException(sprintf(
                     '%s can not be instantiated because its __construct() method is not public.',
                     $class->name
                 ), $e->getCode(), $e);
@@ -138,7 +137,8 @@ class Resolver implements IResolver
      *
      * @return mixed
      *
-     * @throws ResolverError
+     * @throws ResolverException
+     * @throws FailedResolveParameterException
      */
     private function resolveMethodDefinition(ReflectionMethod $method, $object = null, array $args = [])
     {
@@ -150,7 +150,7 @@ class Resolver implements IResolver
                     $class  = new ReflectionClass($object);
                     $object = $this->resolveClassDefinition($class, []);
                 } catch (Throwable $e) {
-                    throw new ResolverError(sprintf(
+                    throw new ResolverException(sprintf(
                         "Method %s::%s() could not be invoked because it's declaring class could not be instantiated.",
                         $method->getDeclaringClass()->getName(),
                         $method->getName()
@@ -159,16 +159,12 @@ class Resolver implements IResolver
             }
         }
 
-        try {
-            $args = $this->resolveParameters($method->getParameters(), $args);
-        } catch (FailedResolveParameter $e) {
-            throw new ResolverError($e->getMessage());
-        }
+        $args = $this->resolveParameters($method->getParameters(), $args);
 
         try {
             return $method->invokeArgs($object, $args);
         } catch (ReflectionException $e) {
-            throw new ResolverError(sprintf(
+            throw new ResolverException(sprintf(
                 'Method %s::%s() could not be invoked.',
                 $method->getDeclaringClass()->getName(),
                 $method->getName()
@@ -182,7 +178,7 @@ class Resolver implements IResolver
      *
      * @return array<int, mixed>
      *
-     * @throws FailedResolveParameter
+     * @throws FailedResolveParameterException
      */
     private function resolveParameters(array $params, array $args = []): array
     {
@@ -190,18 +186,17 @@ class Resolver implements IResolver
         foreach ($params as $param) {
             try {
                 $resolved[] = $this->resolveParameter($param, $args);
-            } catch (FailedResolveParameter | ReflectionException $e) {
+            } catch (FailedResolveParameterException $e) {
                 $class   = $param->getDeclaringClass();
                 $method  = $class ? $class->getName() . '::' : '';
                 $method .= $param->getDeclaringFunction()->getName();
                 $pos     = sprintf('#%d', $param->getPosition() + 1);
 
-                throw new FailedResolveParameter(sprintf(
-                    'The %s %s() %s',
+                throw new FailedResolveParameterException(sprintf(
+                    'Failed resolve the %s %s() parameter.',
                     $pos,
                     $method,
-                    $e->getMessage()
-                ), $e->getCode(), $e);
+                ), 0, $e);
             }
         }
 
@@ -213,12 +208,13 @@ class Resolver implements IResolver
      *
      * @return mixed
      *
-     * @throws FailedResolveParameter
-     * @throws ReflectionException
+     * @throws FailedResolveParameterException
      */
     private function resolveParameter(ReflectionParameter $parameter, array $args = [])
     {
         $reflectionNamedType = $parameter->getType();
+
+        assert($reflectionNamedType instanceof ReflectionNamedType || $reflectionNamedType === null);
 
         if (isset($args[$parameter->getName()])) {
             return $this->checkProvidedValue($parameter, $reflectionNamedType, $args[$parameter->getName()]);
@@ -254,9 +250,9 @@ class Resolver implements IResolver
 
         $error = null;
         if ($reflectionNamedType && ! $reflectionNamedType->isBuiltin()) {
-            $class = new ReflectionClass($reflectionNamedType->getName());
-
             try {
+                $class = new ReflectionClass($reflectionNamedType->getName());
+
                 return $this->container->get($class->getName());
             } catch (Throwable $e) {
                 $error = $e;
@@ -272,7 +268,7 @@ class Resolver implements IResolver
         }
 
         if (! $reflectionNamedType->isBuiltin()) {
-            throw new FailedResolveParameter(sprintf(
+            throw new FailedResolveParameterException(sprintf(
                 'Parameter $%s (type: %s) could not be resolved automatically, ' .
                 'it is not allowing null and no default value provided.',
                 $parameter->getName(),
@@ -280,7 +276,7 @@ class Resolver implements IResolver
             ), 0, $error);
         }
 
-        throw new FailedResolveParameter(sprintf(
+        throw new FailedResolveParameterException(sprintf(
             'Parameter $%s (type: %s) is not allowing null and no default value provided.',
             $parameter->getName(),
             $reflectionNamedType->getName()
@@ -292,14 +288,17 @@ class Resolver implements IResolver
      *
      * @return mixed
      *
-     * @throws ResolverError
+     * @throws ResolverException
      */
     private function resolveFunctionDefinition(ReflectionFunction $function, array $args = [])
     {
         try {
             $args = $this->resolveParameters($function->getParameters(), $args);
-        } catch (FailedResolveParameter $e) {
-            throw new ResolverError($e->getMessage());
+        } catch (FailedResolveParameterException $e) {
+            throw new ResolverException(sprintf(
+                'Failed resolving function %s parameters.',
+                $function->getName(),
+            ), $e->getCode(), $e);
         }
 
         return $function->invokeArgs($args);
@@ -310,7 +309,7 @@ class Resolver implements IResolver
      *
      * @return mixed
      *
-     * @throws FailedResolveParameter
+     * @throws FailedResolveParameterException
      */
     private function checkProvidedValue(ReflectionParameter $param, ?ReflectionNamedType $namedType, $value)
     {
@@ -341,7 +340,7 @@ class Resolver implements IResolver
             }
         }
 
-        throw new FailedResolveParameter(sprintf(
+        throw new FailedResolveParameterException(sprintf(
             'Parameter $%s expects %s. Provided %s.',
             $param->name,
             $namedType->isBuiltin() ? $namedType->getName() : 'an instance of ' . $namedType->getName(),
@@ -354,7 +353,7 @@ class Resolver implements IResolver
      *
      * @return ReflectionClass<T>|ReflectionFunction|ReflectionMethod
      *
-     * @throws ResolverError if provided definition is invalid.
+     * @throws ResolverException if provided definition is invalid.
      *
      * @template T of object
      */
@@ -371,7 +370,7 @@ class Resolver implements IResolver
 
             return Obj::createReflection($definition);
         } catch (ReflectionException $e) {
-            throw new ResolverError($e->getMessage());
+            throw new ResolverException($e->getMessage());
         }
     }
 
@@ -380,15 +379,20 @@ class Resolver implements IResolver
      * @param object                   $object          The object to be resolved
      * @param array<string|int, mixed> $args
      *
-     * @throws ReflectionException
-     * @throws ResolverError
+     * @throws ResolverException
      *
      * @template T of object
      */
     protected function resolveInjectors(ReflectionClass $reflectionClass, object $object, array $args): void
     {
+        try {
+            $methods = Obj::getMethods($reflectionClass, ReflectionMethod::IS_PUBLIC, true, true);
+        } catch (ReflectionException $e) {
+            throw new ResolverException($e->getMessage(), $e->getCode(), $e);
+        }
+
         $injects = array_filter(
-            Obj::getMethods($reflectionClass, ReflectionMethod::IS_PUBLIC, true, true),
+            $methods,
             static function ($method) {
                 return strpos($method->getName(), 'inject') === 0 && ! $method->isAbstract();
             }

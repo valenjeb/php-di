@@ -10,11 +10,11 @@ use Devly\DI\Container;
 use Devly\DI\Contracts\IBootableServiceProvider;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Definition;
-use Devly\DI\Exceptions\AliasNotFoundError;
-use Devly\DI\Exceptions\ContainerError;
-use Devly\DI\Exceptions\DefinitionError;
-use Devly\DI\Exceptions\DefinitionNotFoundError;
-use Devly\DI\Exceptions\NotFoundError;
+use Devly\DI\Exceptions\AliasNotFoundException;
+use Devly\DI\Exceptions\ContainerException;
+use Devly\DI\Exceptions\DefinitionException;
+use Devly\DI\Exceptions\DefinitionNotFoundException;
+use Devly\DI\Exceptions\NotFoundException;
 use Devly\DI\Tests\Fake\A;
 use Devly\DI\Tests\Fake\B;
 use Devly\DI\Tests\Fake\C;
@@ -58,14 +58,14 @@ class ContainerTest extends TestCase
 
     public function testGetDefinitionThrowsNotFoundException(): void
     {
-        $this->expectException(NotFoundError::class);
+        $this->expectException(DefinitionNotFoundException::class);
 
         $this->assertInstanceOf(Definition::class, $this->container->getDefinition('foo'));
     }
 
     public function testDefineServiceThrowsContainerExceptionIfDefinitionExists(): void
     {
-        $this->expectException(ContainerError::class);
+        $this->expectException(ContainerException::class);
         $this->expectErrorMessage(
             'Key "foo" already defined in this container. Use the extend() method' .
             ' to extend its definition or override() to replace the existing definition.'
@@ -77,7 +77,7 @@ class ContainerTest extends TestCase
 
     public function testDefineServiceThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
-        $this->expectException(DefinitionError::class);
+        $this->expectException(DefinitionException::class);
         $this->expectErrorMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
@@ -96,7 +96,7 @@ class ContainerTest extends TestCase
 
     public function testGetServiceThrowsNotFoundException(): void
     {
-        $this->expectException(NotFoundError::class);
+        $this->expectException(NotFoundException::class);
         $this->expectExceptionMessage('Key "stdClass" is not found in this container.');
 
         $this->container->get('stdClass');
@@ -111,10 +111,9 @@ class ContainerTest extends TestCase
         $this->assertNotSame($resolved, $this->container->make('stdClass'));
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testMakeThrowsNotFoundException(): void
     {
-        $this->expectException(DefinitionNotFoundError::class);
+        $this->expectException(NotFoundException::class);
 
         $this->container->make('stdClass');
     }
@@ -129,7 +128,7 @@ class ContainerTest extends TestCase
 
     public function testMakeWithThrowsNotFoundException(): void
     {
-        $this->expectException(DefinitionNotFoundError::class);
+        $this->expectException(NotFoundException::class);
 
         $this->container->makeWith('stdClass', []);
     }
@@ -145,7 +144,7 @@ class ContainerTest extends TestCase
 
     public function testDefineSharedThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
-        $this->expectException(DefinitionError::class);
+        $this->expectException(DefinitionException::class);
         $this->expectErrorMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
@@ -155,7 +154,7 @@ class ContainerTest extends TestCase
 
     public function testDefineSharedThrowsContainerExceptionIfDefinitionExists(): void
     {
-        $this->expectException(ContainerError::class);
+        $this->expectException(ContainerException::class);
         $this->expectErrorMessage(
             'Key "foo" already defined in this container. Use the extend() method' .
             ' to extend its definition or override() to replace the existing definition.'
@@ -184,7 +183,7 @@ class ContainerTest extends TestCase
 
     public function testOverrideThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
-        $this->expectException(DefinitionError::class);
+        $this->expectException(DefinitionException::class);
         $this->expectErrorMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
@@ -201,7 +200,7 @@ class ContainerTest extends TestCase
 
     public function testForgetServiceThrowsNotFoundException(): void
     {
-        $this->expectException(NotFoundError::class);
+        $this->expectException(NotFoundException::class);
 
         $this->container->forget('foo');
     }
@@ -331,7 +330,7 @@ class ContainerTest extends TestCase
 
     public function testGetAliasThrowsAliasNotFoundException(): void
     {
-        $this->expectException(AliasNotFoundError::class);
+        $this->expectException(AliasNotFoundException::class);
         $this->container->getAlias('a');
     }
 
@@ -378,7 +377,7 @@ class ContainerTest extends TestCase
 
     public function testExtendThrowsNotFoundException(): void
     {
-        $this->expectException(NotFoundError::class);
+        $this->expectException(NotFoundException::class);
 
         $this->container->extend(A::class)->setParam('text', 'foo');
     }

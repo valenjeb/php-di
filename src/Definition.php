@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Devly\DI;
 
 use Devly\DI\Contracts\IContainer;
-use Devly\DI\Exceptions\DefinitionError;
-use Devly\DI\Exceptions\ResolverError;
+use Devly\DI\Exceptions\DefinitionException;
+use Devly\DI\Exceptions\InvalidDefinitionException;
+use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Helpers\Obj;
 use Devly\DI\Helpers\Utils;
 use ReflectionException;
@@ -42,7 +43,7 @@ class Definition
      * @param callable|class-string<T> $concrete
      * @param array<string|int, mixed> $args
      *
-     * @throws DefinitionError if the #1 argument is not a callable or a fully qualified class name.
+     * @throws InvalidDefinitionException if the #1 argument is not a callable or a fully qualified class name.
      *
      * @template T of object
      */
@@ -54,7 +55,7 @@ class Definition
 
             $this->setParams($args);
         } catch (ReflectionException $e) {
-            throw new DefinitionError(
+            throw new InvalidDefinitionException(
                 'Factory concrete definition must be a callable or a fully qualified class name.'
             );
         }
@@ -65,9 +66,9 @@ class Definition
      *
      * @return mixed
      *
-     * @throws DefinitionError if setup or return action is not a property name (prefixed with $)
+     * @throws DefinitionException if setup or return action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
-     * @throws ResolverError   if error occurs during resolving.
+     * @throws ResolverException   if error occurs during resolving.
      */
     public function resolve(Container $container, array $args = [])
     {
@@ -92,8 +93,8 @@ class Definition
      *
      * @return mixed|void
      *
-     * @throws ResolverError   if error occurs during resolving.
-     * @throws DefinitionError if return action is not a property name (prefixed with $)
+     * @throws ResolverException   if error occurs during resolving.
+     * @throws DefinitionException if return action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
      */
     protected function doReturnAction(IContainer $container, object $object, string $action, $value = null)
@@ -118,8 +119,8 @@ class Definition
      * @param string|callable $action Property or method name to return
      * @param mixed           $value  Value to pass to the resolver if return action is method
      *
-     * @throws ResolverError if error occurs during resolving.
-     * @throws DefinitionError if action is not a property name (prefixed with $)
+     * @throws ResolverException if error occurs during resolving.
+     * @throws DefinitionException if action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
      */
     private function doSetupAction(Container $container, object $object, $action, $value = null): void
@@ -206,10 +207,9 @@ class Definition
         return $this->shared;
     }
 
-    /** @throws DefinitionError */
     protected function throwInvalidActionName(): void
     {
-        throw new DefinitionError(
+        throw new DefinitionException(
             'The 3# parameter ($action) value must be a property (prefixed with $) or method name (prefixed with @)'
         );
     }

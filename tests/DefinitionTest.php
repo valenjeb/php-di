@@ -6,13 +6,12 @@ namespace Devly\DI\Tests;
 
 use Devly\DI\Container;
 use Devly\DI\Definition;
-use Devly\DI\Exceptions\DefinitionError;
+use Devly\DI\Exceptions\DefinitionException;
 use Devly\DI\Tests\Fake\A;
 use PHPUnit\Framework\TestCase;
 
 class DefinitionTest extends TestCase
 {
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateDefinitionWithClassName(): void
     {
         $factory = new Definition(A::class);
@@ -23,7 +22,7 @@ class DefinitionTest extends TestCase
 
     public function testCreateDefinitionThrowsDefinitionException(): void
     {
-        $this->expectException(DefinitionError::class);
+        $this->expectException(DefinitionException::class);
         $this->expectExceptionMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
@@ -31,7 +30,6 @@ class DefinitionTest extends TestCase
         $factory = new Definition('Fake'); // @phpstan-ignore-line
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateObjectDefinitionWithSetupSteps(): void
     {
         $container = new Container();
@@ -46,7 +44,6 @@ class DefinitionTest extends TestCase
         $this->assertEquals('foo', $object2->getText());
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateObjectDefinitionWithReturnPropertyStatement(): void
     {
         $factory = new Definition(A::class);
@@ -57,7 +54,6 @@ class DefinitionTest extends TestCase
         $this->assertEquals('foo', $object);
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateObjectDefinitionWithReturnMethodStatement(): void
     {
         $factory = new Definition(A::class);
@@ -68,10 +64,9 @@ class DefinitionTest extends TestCase
         $this->assertEquals('foo', $resolved);
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testReturnStatementThrowsDefinitionExceptionIfInvalidActionName(): void
     {
-        $this->expectException(DefinitionError::class);
+        $this->expectException(DefinitionException::class);
         $this->expectExceptionMessage(
             'The 3# parameter ($action) value must be a property (prefixed with $) or method name (prefixed with @)'
         );
@@ -80,7 +75,6 @@ class DefinitionTest extends TestCase
         $factory->resolve(new Container());
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateStaticMethodDefinition(): void
     {
         $factory = (new Definition(A::class . '::getTextStatic'))->setParam('text', 'foo');
@@ -89,7 +83,6 @@ class DefinitionTest extends TestCase
         $this->assertEquals('foo', $object);
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testCreateClosureDefinition(): void
     {
         $factory = new Definition(static fn ($text) => $text, ['text' => 'foo']);

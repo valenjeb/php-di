@@ -7,12 +7,12 @@ namespace Devly\DI\Contracts;
 use Closure;
 use Devly\DI\ContextualBindingBuilder;
 use Devly\DI\Definition;
-use Devly\DI\Exceptions\AliasNotFoundError;
-use Devly\DI\Exceptions\ContainerError;
-use Devly\DI\Exceptions\DefinitionError;
-use Devly\DI\Exceptions\DefinitionNotFoundError;
-use Devly\DI\Exceptions\NotFoundError;
-use Devly\DI\Exceptions\ResolverError;
+use Devly\DI\Exceptions\AliasNotFoundException;
+use Devly\DI\Exceptions\DefinitionNotFoundException;
+use Devly\DI\Exceptions\InvalidDefinitionException;
+use Devly\DI\Exceptions\NotFoundException;
+use Devly\DI\Exceptions\OverwriteExistingServiceException;
+use Devly\DI\Exceptions\ResolverException;
 use Devly\Repository;
 
 /**
@@ -42,8 +42,8 @@ interface IContainer
      *
      * @param Definition|callable|string|null $value
      *
-     * @throws ContainerError If an item with the given key already exists in the container.
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
+     * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
      */
     public function define(string $key, $value = null): Definition;
 
@@ -52,7 +52,7 @@ interface IContainer
      *
      * @param mixed $value
      *
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
      */
     public function override(string $key, $value = null): Definition;
 
@@ -61,8 +61,8 @@ interface IContainer
      *
      * @param Definition|callable|string|null $value
      *
-     * @throws ContainerError If an item with the given key already exists in the container.
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
+     * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
      */
     public function defineShared(string $key, $value = null): Definition;
 
@@ -71,14 +71,14 @@ interface IContainer
      *
      * @param Definition|callable|string $value
      *
-     * @throws DefinitionError If provided value is not a callable or a fully qualified class name.
+     * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
      */
     public function overrideShared(string $key, $value = null): Definition;
 
     /**
      * Extend existing factory definition.
      *
-     * @throws NotFoundError If definition not found in the container.
+     * @throws NotFoundException If definition not found in the container.
      */
     public function extend(string $key): Definition;
 
@@ -91,8 +91,22 @@ interface IContainer
      * try to resolve the class definition automatically and store it in the container.
      *
      * @return mixed
+     *
+     * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
+     * @throws ResolverException if error occurs during resolving.
      */
     public function get(string $key);
+
+    /**
+     * Retrieve an object or a value from the container or return default value if not found
+     *
+     * @param mixed $default
+     *
+     * @return mixed|null
+     *
+     * @throws ResolverException if error occurred during resolve operation.
+     */
+    public function getSafe(string $key, $default = null);
 
     /**
      * Resolve an item in the container.
@@ -104,6 +118,9 @@ interface IContainer
      * @param string $key The service name to resolve.
      *
      * @return mixed
+     *
+     * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
+     * @throws ResolverException if error occurred during resolve operation.
      */
     public function make(string $key);
 
@@ -114,6 +131,9 @@ interface IContainer
      * @param array<string, mixed> $args List of args to pass to the resolver.
      *
      * @return mixed
+     *
+     * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
+     * @throws ResolverException if error occurred during resolve operation.
      */
     public function makeWith(string $key, array $args);
 
@@ -128,7 +148,7 @@ interface IContainer
     /**
      * Registers a service provider.
      *
-     * @param IServiceProvider|IBootableServiceProvider $provider
+     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
      */
     public function registerServiceProvider($provider): void;
 
@@ -152,7 +172,7 @@ interface IContainer
      *
      * @return mixed
      *
-     * @throws ResolverError
+     * @throws ResolverException
      */
     public function call($callbackOrClassName, array $args = []);
 
@@ -160,6 +180,8 @@ interface IContainer
      * Drop a service definition and its instance from the container
      *
      * @param string $name The name of the service to remove.
+     *
+     * @throws NotFoundException if service name does not exist in the container.
      */
     public function forget(string $name): void;
 
@@ -198,7 +220,7 @@ interface IContainer
     /**
      * Retrieves the target service for the provided key
      *
-     * @throws AliasNotFoundError if alias name does not exist.
+     * @throws AliasNotFoundException if alias name does not exist.
      */
     public function getAlias(string $key): string;
 
@@ -226,7 +248,7 @@ interface IContainer
     /**
      * Get a service factory definition
      *
-     * @throws DefinitionNotFoundError if definition does not exist in the container.
+     * @throws DefinitionNotFoundException if definition does not exist in the container.
      */
     public function getDefinition(string $name): Definition;
 
