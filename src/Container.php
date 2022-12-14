@@ -543,6 +543,18 @@ class Container implements IContainer, ArrayAccess
     /**
      * Registers a service provider
      *
+     * @see registerServiceProvider
+     *
+     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
+     */
+    public function register($provider): void
+    {
+        $this->registerServiceProvider($provider);
+    }
+
+    /**
+     * Registers a service provider
+     *
      * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
      */
     public function registerServiceProvider($provider): void
