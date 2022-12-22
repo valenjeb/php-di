@@ -6,6 +6,7 @@ namespace Devly\DI;
 
 use Closure;
 use Devly\DI\Contracts\IContainer;
+use Devly\DI\Contracts\Factory;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Exceptions\FailedResolveParameterException;
 use Devly\DI\Exceptions\ResolverException;
@@ -124,6 +125,25 @@ class Resolver implements IResolver
                     $class->name
                 ), $e->getCode(), $e);
             }
+        }
+
+        if ($class->implementsInterface(Factory::class)) {
+            if (! $class->hasMethod('create')) {
+                throw new ResolverException(sprintf(
+                    'Factory object \'%s\' does not implement create() method.',
+                    $class->name
+                ));
+            }
+
+            $createMethod = $class->getMethod('create');
+            if (! $createMethod->isPublic() || $createMethod->isStatic() || $createMethod->isAbstract()) {
+                throw new ResolverException(sprintf(
+                    'Factory method \'%s::create()\' must be a public and non static.',
+                    $class->name
+                ));
+            }
+
+            $object = $this->resolve([$object, 'create'], $args);
         }
 
         $this->resolveInjectors($class, $object, $args);

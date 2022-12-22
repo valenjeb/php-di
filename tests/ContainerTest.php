@@ -15,10 +15,13 @@ use Devly\DI\Exceptions\ContainerException;
 use Devly\DI\Exceptions\DefinitionException;
 use Devly\DI\Exceptions\DefinitionNotFoundException;
 use Devly\DI\Exceptions\NotFoundException;
+use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Tests\Fake\A;
 use Devly\DI\Tests\Fake\B;
 use Devly\DI\Tests\Fake\C;
 use Devly\DI\Tests\Fake\D;
+use Devly\DI\Tests\Fake\ErrorFactory;
+use Devly\DI\Tests\Fake\Factory;
 use Devly\DI\Tests\Fake\I;
 use Devly\DI\Tests\Fake\Provider;
 use PHPUnit\Framework\TestCase;
@@ -380,5 +383,21 @@ class ContainerTest extends TestCase
         $this->expectException(NotFoundException::class);
 
         $this->container->extend(A::class)->setParam('text', 'foo');
+    }
+
+    public function testUseFactoryObject(): void
+    {
+        $this->container->define(A::class, Factory::class);
+
+        $this->assertInstanceOf(A::class, $this->container->get(A::class));
+    }
+
+    public function testUseFactoryThrowsCreateMethodNotExist(): void
+    {
+        $this->expectException(ResolverException::class);
+
+        $this->container->define(A::class, ErrorFactory::class);
+
+        $this->container->get(A::class);
     }
 }
