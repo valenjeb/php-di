@@ -387,9 +387,11 @@ class ContainerTest extends TestCase
 
     public function testUseFactoryObject(): void
     {
-        $this->container->define(A::class, Factory::class);
+        $this->container->define(A::class, Factory::class)->setParams(['foo' => 'boo']);
 
-        $this->assertInstanceOf(A::class, $this->container->get(A::class));
+        $a = $this->container->get(A::class);
+        $this->assertInstanceOf(A::class, $a);
+        $this->assertEquals('boo', $a->getText());
     }
 
     public function testUseFactoryThrowsCreateMethodNotExist(): void

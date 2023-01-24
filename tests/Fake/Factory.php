@@ -8,8 +8,8 @@ use Devly\DI\Contracts\Factory as FactoryContract;
 
 class Factory implements FactoryContract
 {
-    public function create(): A
+    public function create(string $foo): A
     {
-        return new A('foo');
+        return new A($foo);
     }
 }
