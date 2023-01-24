@@ -17,10 +17,16 @@ class Provider implements IServiceProvider
      * @var string[]
      */
     protected array $provides = [A::class];
+    protected IContainer $di;
 
-    public function register(IContainer $di): void
+    public function __construct(IContainer $di)
     {
-        $di->define(A::class)->setParam('text', 'foo');
+        $this->di = $di;
+    }
+
+    public function register(): void
+    {
+        $this->di->define(A::class)->setParam('text', 'foo');
     }
 
     public function provides(string $key): bool

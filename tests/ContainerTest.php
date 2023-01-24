@@ -339,7 +339,7 @@ class ContainerTest extends TestCase
 
     public function testRegisterServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider());
+        $this->container->registerServiceProvider(new Provider($this->container));
 
         $this->assertTrue($this->container->serviceProviderExists(Provider::class));
     }
@@ -352,7 +352,7 @@ class ContainerTest extends TestCase
     public function testRegisterServiceProviderWithClassImplementsBootableServiceProviderShouldPassTypeCheck(): void
     {
         $provider = new class implements IBootableServiceProvider {
-            public function boot(IContainer $di): void
+            public function boot(): void
             {
             }
         };
@@ -364,7 +364,7 @@ class ContainerTest extends TestCase
 
     public function testResolveObjectDefinedByServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider());
+        $this->container->registerServiceProvider(new Provider($this->container));
 
         $this->assertEquals('foo', $this->container->get(A::class)->getText());
     }

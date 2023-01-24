@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Devly\DI;
 
 use Closure;
-use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\Factory;
+use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Exceptions\FailedResolveParameterException;
 use Devly\DI\Exceptions\ResolverException;

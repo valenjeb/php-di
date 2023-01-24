@@ -6,5 +6,5 @@ namespace Devly\DI\Contracts;
 
 interface IDeferredServiceProvider
 {
-    public function bootDeferred(IContainer $di): void;
+    public function bootDeferred(): void;
 }

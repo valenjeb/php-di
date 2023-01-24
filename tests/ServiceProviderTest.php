@@ -14,10 +14,12 @@ use PHPUnit\Framework\TestCase;
 class ServiceProviderTest extends TestCase
 {
     protected Provider $serviceProvider;
+    protected Container $container;
 
     protected function setUp(): void
     {
-        $this->serviceProvider = new Provider();
+        $this->container       = new Container();
+        $this->serviceProvider = new Provider($this->container);
     }
 
     public function testProvides(): void
@@ -26,12 +28,10 @@ class ServiceProviderTest extends TestCase
         $this->assertFalse($this->serviceProvider->provides(B::class));
     }
 
-    /** @noinspection PhpUnhandledExceptionInspection */
     public function testRegister(): void
     {
-        $container = new Container();
-        $this->serviceProvider->register($container);
+        $this->serviceProvider->register();
 
-        $this->assertInstanceOf(Definition::class, $container->getDefinition(A::class));
+        $this->assertInstanceOf(Definition::class, $this->container->getDefinition(A::class));
     }
 }

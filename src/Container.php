@@ -560,7 +560,7 @@ class Container implements IContainer, ArrayAccess
     public function registerServiceProvider($provider): void
     {
         if ($provider instanceof IConfigProvider) {
-            $provider->provideConfig($this);
+            $provider->provideConfig();
         }
 
         if ($provider instanceof IServiceProvider) {
@@ -597,11 +597,11 @@ class Container implements IContainer, ArrayAccess
         }
 
         foreach ($this->bootableServices as $provider) {
-            $provider->boot($this);
+            $provider->boot();
         }
 
         foreach ($this->deferredServices as $provider) {
-            $provider->bootDeferred($this);
+            $provider->bootDeferred();
         }
 
         $this->servicesBooted = true;
@@ -745,7 +745,7 @@ class Container implements IContainer, ArrayAccess
                 continue;
             }
 
-            $provider->register($this);
+            $provider->register();
 
             $this->skippedProviders[$className] = true;
 

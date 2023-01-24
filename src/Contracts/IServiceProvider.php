@@ -11,5 +11,5 @@ interface IServiceProvider
      */
     public function provides(string $key): bool;
 
-    public function register(IContainer $di): void;
+    public function register(): void;
 }

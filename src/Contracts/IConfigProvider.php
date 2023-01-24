@@ -6,5 +6,5 @@ namespace Devly\DI\Contracts;
 
 interface IConfigProvider
 {
-    public function provideConfig(IContainer $di): void;
+    public function provideConfig(): void;
 }
