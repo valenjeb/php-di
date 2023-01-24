@@ -4,9 +4,3 @@ parameters:
 		- src/
 		- tests/
 	treatPhpDocTypesAsCertain: false
-	ignoreErrors:
-		-
-			messages:
-				- '#Call to an undefined method ReflectionType::getName\(\).#'
-				- '#Parameter \#2 \$namedType of method Devly\\DI\\Resolver::checkProvidedValue\(\) expects ReflectionNamedType\|null.#'
-			path: src/Resolver.php
