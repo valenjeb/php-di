@@ -41,6 +41,10 @@ class Obj
             return new ReflectionFunction($definition);
         }
 
+        if (is_array($definition)) {
+            return new ReflectionMethod(...$definition);
+        }
+
         return new ReflectionClass($definition);
     }
 
@@ -74,7 +78,7 @@ class Obj
      *
      * @param ReflectionClass<T>|class-string<T> $class          A class name or instance of ReflectionClass.
      * @param int|null                           $filter         Filter the results to include only methods with.
-     *                                                           certain attributes. Defaults to no filtering.
+     *                                                                                                                                                                 certain attributes. Defaults to no filtering.
      * @param bool                               $includeParents Whether to include the parent object methods.
      * @param bool                               $includeTraits  Whether to include the traits methods.
      *
