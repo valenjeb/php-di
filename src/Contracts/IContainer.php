@@ -147,10 +147,8 @@ interface IContainer
 
     /**
      * Registers a service provider.
-     *
-     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
      */
-    public function registerServiceProvider($provider): void;
+    public function registerServiceProvider(IServiceProvider $provider): void;
 
     /**
      * Run boot() method for each bootable service provider set in the container.

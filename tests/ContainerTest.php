@@ -7,7 +7,6 @@ declare(strict_types=1);
 namespace Devly\DI\Tests;
 
 use Devly\DI\Container;
-use Devly\DI\Contracts\IBootableServiceProvider;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Definition;
 use Devly\DI\Exceptions\AliasNotFoundException;
@@ -16,6 +15,7 @@ use Devly\DI\Exceptions\DefinitionException;
 use Devly\DI\Exceptions\DefinitionNotFoundException;
 use Devly\DI\Exceptions\NotFoundException;
 use Devly\DI\Exceptions\ResolverException;
+use Devly\DI\ServiceProvider;
 use Devly\DI\Tests\Fake\A;
 use Devly\DI\Tests\Fake\B;
 use Devly\DI\Tests\Fake\C;
@@ -349,17 +349,28 @@ class ContainerTest extends TestCase
         $this->assertEquals('foo', $this->container->getSafe('FakeService', 'foo'));
     }
 
-    public function testRegisterServiceProviderWithClassImplementsBootableServiceProviderShouldPassTypeCheck(): void
+    public function testRegisterBootableServiceProvider(): void
     {
-        $provider = new class implements IBootableServiceProvider {
+        $provider = new class extends ServiceProvider {
+            public bool $isBooted      = false;
+            public bool $isBootedDefer = false;
+
             public function boot(): void
             {
+                $this->isBooted = true;
+            }
+
+            public function bootDeferred(): void
+            {
+                $this->isBootedDefer = true;
             }
         };
 
         $this->container->registerServiceProvider($provider);
+        $this->container->bootServices();
 
-        $this->assertTrue(true);
+        $this->assertTrue($provider->isBooted);
+        $this->assertTrue($provider->isBootedDefer);
     }
 
     public function testResolveObjectDefinedByServiceProvider(): void

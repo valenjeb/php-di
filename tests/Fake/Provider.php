@@ -16,7 +16,7 @@ class Provider implements IServiceProvider
      *
      * @var string[]
      */
-    protected array $provides = [A::class];
+    public array $provides = [A::class];
     protected IContainer $di;
 
     public function __construct(IContainer $di)

@@ -6,10 +6,8 @@ namespace Devly\DI;
 
 use ArrayAccess;
 use Closure;
-use Devly\DI\Contracts\IBootableServiceProvider;
-use Devly\DI\Contracts\IConfigProvider;
+use Devly\DI\Contracts\Factory;
 use Devly\DI\Contracts\IContainer;
-use Devly\DI\Contracts\IDeferredServiceProvider;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Contracts\IServiceProvider;
 use Devly\DI\Exceptions\AliasNotFoundException;
@@ -30,8 +28,12 @@ use function class_exists;
 use function func_get_args;
 use function get_class;
 use function is_array;
+use function is_callable;
 use function is_string;
 use function sprintf;
+use function trigger_error;
+
+use const E_USER_DEPRECATED;
 
 /**
  * Dependency Injection Container
@@ -81,13 +83,13 @@ class Container implements IContainer, ArrayAccess
      */
     private array $afterResolve = [];
     /** @var IServiceProvider[] */
-    private array $registrableProviders = [];
-    /** @var IBootableServiceProvider[] */
-    protected array $bootableServices = [];
-    /** @var IDeferredServiceProvider[] */
-    protected array $deferredServices = [];
-    /** @var array<string, true> */
-    private array $skippedProviders = [];
+    private array $providers = [];
+    /** @var string[] */
+    private array $unregisteredProviders = [];
+    /** @var string[] */
+    protected array $bootableProviders = [];
+    /** @var string[] */
+    protected array $deferredProviders = [];
     /**
      * The abstract binding map.
      *
@@ -104,10 +106,10 @@ class Container implements IContainer, ArrayAccess
     /**
      * @param IContainer|array<string, mixed> $items             List of servo service definitions.
      * @param bool                            $autowiringEnabled Whether to services should be autowired
-     *                                                           automatically
-     *                                                           when not defined
+     *                                                                                                                                            automatically
+     *                                                                                                                                            when not defined
      * @param bool                            $shared            Whether the container services should be
-     *                                                           shared by default
+     *                                                                                                                                                                             shared by default
      */
     public function __construct($items = [], bool $autowiringEnabled = false, bool $shared = false)
     {
@@ -178,7 +180,7 @@ class Container implements IContainer, ArrayAccess
     /**
      * Define an object or a value in the container.
      *
-     * @param Definition|callable|string|null $value
+     * @param Definition|Factory|callable|class-string|callable-string|null $value
      *
      * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
      * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
@@ -203,7 +205,7 @@ class Container implements IContainer, ArrayAccess
     /**
      * Add a shared factory definition.
      *
-     * @param Definition|callable|string|null $value
+     * @param Definition|Factory|callable|class-string|callable-string|null $value
      *
      * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
      * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
@@ -216,7 +218,7 @@ class Container implements IContainer, ArrayAccess
     /**
      * Define or override an object or a value in the container.
      *
-     * @param mixed $value
+     * @param Definition|Factory|callable|class-string|callable-string|null $value
      *
      * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
      */
@@ -236,7 +238,7 @@ class Container implements IContainer, ArrayAccess
     /**
      * Add a shared factory definition.
      *
-     * @param Definition|callable|string|null $value
+     * @param Definition|Factory|callable|class-string|callable-string|null $value
      *
      * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
      * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
@@ -541,46 +543,40 @@ class Container implements IContainer, ArrayAccess
     }
 
     /**
-     * Registers a service provider
+     * @deprecated
      *
      * @see registerServiceProvider
-     *
-     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
      */
-    public function register($provider): void
+    public function register(IServiceProvider $provider): void
     {
+        trigger_error(sprintf(
+            '%1$s::register is deprecated and will be removed in v1.0 replace it with %1$s::registerServiceProvider',
+            self::class
+        ), E_USER_DEPRECATED);
+
         $this->registerServiceProvider($provider);
     }
 
-    /**
-     * Registers a service provider
-     *
-     * @param IServiceProvider|IBootableServiceProvider|IDeferredServiceProvider|IConfigProvider $provider
-     */
-    public function registerServiceProvider($provider): void
+    public function registerServiceProvider(IServiceProvider $provider): void
     {
-        if ($provider instanceof IConfigProvider) {
-            $provider->provideConfig();
+        $this->providers[get_class($provider)] = $provider;
+
+        $this->unregisteredProviders[] = get_class($provider);
+
+        if (is_callable([$provider, 'boot'])) {
+            $this->bootableProviders[] = get_class($provider);
         }
 
-        if ($provider instanceof IServiceProvider) {
-            $this->registrableProviders[get_class($provider)] = $provider;
-        }
-
-        if ($provider instanceof IBootableServiceProvider) {
-            $this->bootableServices[] = $provider;
-        }
-
-        if (! $provider instanceof IDeferredServiceProvider) {
+        if (! is_callable([$provider, 'bootDeferred'])) {
             return;
         }
 
-        $this->deferredServices[] = $provider;
+        $this->deferredProviders[] = get_class($provider);
     }
 
     public function serviceProviderExists(string $provider): bool
     {
-        return array_key_exists($provider, $this->registrableProviders);
+        return array_key_exists($provider, $this->providers);
     }
 
     /**
@@ -596,12 +592,12 @@ class Container implements IContainer, ArrayAccess
             throw new ContainerException('Services are already booted');
         }
 
-        foreach ($this->bootableServices as $provider) {
-            $provider->boot();
+        foreach ($this->bootableProviders as $providerName) {
+            $this->call([$this->providers[$providerName], 'boot']);
         }
 
-        foreach ($this->deferredServices as $provider) {
-            $provider->bootDeferred();
+        foreach ($this->deferredProviders as $providerName) {
+            $this->call([$this->providers[$providerName], 'bootDeferred']);
         }
 
         $this->servicesBooted = true;
@@ -703,7 +699,7 @@ class Container implements IContainer, ArrayAccess
 
     /**
      * @param string|null $key     Key name to retrieve. If null, returns the underlying
-     *                             config object (Devly\Repository).
+     *                                         config object (Devly\Repository).
      * @param mixed       $default Default value to return if the provided key not found
      *
      * @return Repository|mixed
@@ -733,11 +729,12 @@ class Container implements IContainer, ArrayAccess
 
     protected function findDefinition(string $key): bool
     {
-        $found = false;
-        foreach ($this->registrableProviders as $provider) {
-            $className = get_class($provider);
+        foreach ($this->unregisteredProviders as $className) {
+            $provider = $this->providers[$className];
 
-            if (isset($this->skippedProviders[$className]) || ! $provider instanceof IServiceProvider) {
+            if (empty($provider->provides)) {
+                unset($this->unregisteredProviders[$className]);
+
                 continue;
             }
 
@@ -747,12 +744,8 @@ class Container implements IContainer, ArrayAccess
 
             $provider->register();
 
-            $this->skippedProviders[$className] = true;
+            unset($this->unregisteredProviders[$className]);
 
-            $found = true;
-        }
-
-        if ($found === true) {
             return true;
         }
 
