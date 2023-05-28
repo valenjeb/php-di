@@ -160,11 +160,7 @@ class Container implements IContainer, ArrayAccess
      */
     public function has(string $key): bool
     {
-        if ($this->resolved($key)) {
-            return true;
-        }
-
-        return $this->hasDefinition($key);
+        return $this->resolved($key) || $this->findDefinition($key);
     }
 
     /**
@@ -187,7 +183,7 @@ class Container implements IContainer, ArrayAccess
      */
     public function define(string $key, $value = null): Definition
     {
-        if ($this->has($key)) {
+        if ($this->hasDefinition($key) || $this->resolved($key)) {
             throw new OverwriteExistingServiceException(sprintf(
                 'Key "%s" already defined in this container. Use the extend() method' .
                 ' to extend its definition or override() to replace the existing definition.',
@@ -255,14 +251,14 @@ class Container implements IContainer, ArrayAccess
      */
     public function extend(string $key): Definition
     {
-        if (! $this->has($key)) {
+        try {
+            return $this->getDefinition($key);
+        } catch (DefinitionNotFoundException $e) {
             throw new NotFoundException(sprintf(
                 'Key "%s" can not be extended because it is not defined in this container.',
                 $key
             ));
         }
-
-        return $this->definitions[$key];
     }
 
     /**
@@ -297,20 +293,18 @@ class Container implements IContainer, ArrayAccess
             } catch (AliasNotFoundException $e) {
             }
 
-            if (! $this->findDefinition($key)) {
-                if (! $this->autowiringEnabled) {
-                    throw new NotFoundException(sprintf('Key "%s" is not found in this container.', $key));
-                }
+            if (! $this->autowiringEnabled) {
+                throw new NotFoundException(sprintf('Key "%s" is not found in this container.', $key));
+            }
 
-                try {
-                    $this->define($key);
-                } catch (DefinitionException $e) {
-                    throw new NotFoundException(sprintf(
-                        'Key "%s" is not found in this container and could not be' .
-                        ' defined automatically using autowiring.',
-                        $key
-                    ), 0, $e);
-                }
+            try {
+                $this->define($key);
+            } catch (DefinitionException $e) {
+                throw new NotFoundException(sprintf(
+                    'Key "%s" is not found in this container and could not be' .
+                    ' defined automatically using autowiring.',
+                    $key
+                ), 0, $e);
             }
         }
 
@@ -380,7 +374,7 @@ class Container implements IContainer, ArrayAccess
      */
     public function makeWith(string $key, array $args)
     {
-        if (! $this->hasDefinition($key)) {
+        if (! $this->findDefinition($key)) {
             try {
                 $key = $this->getAlias($key);
 
@@ -388,19 +382,17 @@ class Container implements IContainer, ArrayAccess
             } catch (AliasNotFoundException $e) {
             }
 
-            if (! $this->findDefinition($key)) {
-                if (! $this->autowiringEnabled) {
-                    throw new NotFoundException(sprintf('No definition found for key "%s".', $key));
-                }
+            if (! $this->autowiringEnabled) {
+                throw new NotFoundException(sprintf('No definition found for key "%s".', $key));
+            }
 
-                try {
-                    $this->define($key);
-                } catch (DefinitionException $e) {
-                    throw new NotFoundException(sprintf(
-                        'No definition found for key "%s" and it could not be defined automatically using autowiring.',
-                        $key
-                    ), 0, $e);
-                }
+            try {
+                $this->define($key);
+            } catch (DefinitionException $e) {
+                throw new NotFoundException(sprintf(
+                    'No definition found for key "%s" and it could not be defined automatically using autowiring.',
+                    $key
+                ), 0, $e);
             }
         }
 
@@ -490,7 +482,7 @@ class Container implements IContainer, ArrayAccess
      */
     public function forget(string $name): void
     {
-        if (! $this->has($name)) {
+        if (! $this->hasDefinition($name) && ! $this->resolved($name)) {
             throw new NotFoundException(sprintf('Service "%s" does not exist in the container.', $name));
         }
 
@@ -720,7 +712,7 @@ class Container implements IContainer, ArrayAccess
      */
     public function getDefinition(string $name): Definition
     {
-        if (! $this->hasDefinition($name) && ! $this->findDefinition($name)) {
+        if (! $this->findDefinition($name)) {
             throw new DefinitionNotFoundException('Service definition ' . $name . ' does not exist in the container.');
         }
 
@@ -729,6 +721,10 @@ class Container implements IContainer, ArrayAccess
 
     protected function findDefinition(string $key): bool
     {
+        if ($this->hasDefinition($key)) {
+            return true;
+        }
+
         foreach ($this->unregisteredProviders as $className) {
             $provider = $this->providers[$className];
 

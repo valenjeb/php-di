@@ -85,7 +85,7 @@ class ContainerTest extends TestCase
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
-        $this->container->define('foo', 'bar');
+        $this->container->define('foo', 'bar'); // @phpstan-ignore-line
     }
 
     public function testGetService(): void
@@ -152,7 +152,7 @@ class ContainerTest extends TestCase
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
-        $this->container->defineShared('foo', 'bar');
+        $this->container->defineShared('foo', 'bar'); // @phpstan-ignore-line
     }
 
     public function testDefineSharedThrowsContainerExceptionIfDefinitionExists(): void
@@ -191,7 +191,7 @@ class ContainerTest extends TestCase
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
-        $this->container->override('foo', 'bar');
+        $this->container->override('foo', 'bar'); // @phpstan-ignore-line
     }
 
     public function testForgetService(): void
@@ -377,6 +377,8 @@ class ContainerTest extends TestCase
     {
         $this->container->registerServiceProvider(new Provider($this->container));
 
+        $this->assertTrue($this->container->has(A::class));
+
         $this->assertEquals('foo', $this->container->get(A::class)->getText());
     }
 
@@ -398,11 +400,14 @@ class ContainerTest extends TestCase
 
     public function testUseFactoryObject(): void
     {
-        $this->container->define(A::class, Factory::class)->setParams(['foo' => 'boo']);
+        $this->container->define(A::class, Factory::class)->setParams(['foo' => 'bar']);
 
         $a = $this->container->get(A::class);
         $this->assertInstanceOf(A::class, $a);
-        $this->assertEquals('boo', $a->getText());
+        $this->assertEquals('bar', $a->getText());
+
+        $aa = $this->container->makeWith(A::class, ['foo' => 'baz']);
+        $this->assertEquals('baz', $aa->getText());
     }
 
     public function testUseFactoryThrowsCreateMethodNotExist(): void
