@@ -559,11 +559,9 @@ class Container implements IContainer, ArrayAccess
             $this->bootableProviders[] = get_class($provider);
         }
 
-        if (! is_callable([$provider, 'bootDeferred'])) {
-            return;
+        if (is_callable([$provider, 'bootDeferred'])) {
+            $this->deferredProviders[] = get_class($provider);
         }
-
-        $this->deferredProviders[] = get_class($provider);
 
         $provider->init($this);
     }
