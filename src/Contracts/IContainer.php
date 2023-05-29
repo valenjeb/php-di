@@ -156,6 +156,14 @@ interface IContainer
     public function bootServices(): void;
 
     /**
+     * Bind another container as a definition source
+     *
+     * Bound containers will be searched for definitions when a definition
+     * can't be found in the container or its service providers.
+     */
+    public function bindContainer(IContainer $container): self;
+
+    /**
      * Checks wetter an item exists in the container.
      *
      * @param string $key Identifier of the entry to look for.
