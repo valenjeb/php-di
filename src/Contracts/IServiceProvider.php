@@ -12,7 +12,7 @@ interface IServiceProvider
      * The init method is called immediately after the service provider
      * is registered on the service provider the container.
      */
-    public function init(IContainer $app): void;
+    public function init(IContainer $di): void;
 
     /**
      * Determines whether the service provider provides the provided key name
@@ -22,5 +22,5 @@ interface IServiceProvider
     /**
      * Register services provided by the service provider
      */
-    public function register(): void;
+    public function register(IContainer $di): void;
 }

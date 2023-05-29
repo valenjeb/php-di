@@ -15,15 +15,9 @@ class Provider extends ServiceProvider
      * @var string[]
      */
     public array $provides = [A::class];
-    protected IContainer $di;
 
-    public function __construct(IContainer $di)
+    public function register(IContainer $di): void
     {
-        $this->di = $di;
-    }
-
-    public function register(): void
-    {
-        $this->di->define(A::class)->setParam('text', 'foo');
+        $di->define(A::class)->setParam('text', 'foo');
     }
 }

@@ -18,7 +18,7 @@ abstract class ServiceProvider implements IServiceProvider
      */
     public array $provides = [];
 
-    public function init(IContainer $app): void
+    public function init(IContainer $di): void
     {
     }
 
@@ -27,7 +27,7 @@ abstract class ServiceProvider implements IServiceProvider
         return in_array($key, $this->provides);
     }
 
-    public function register(): void
+    public function register(IContainer $di): void
     {
     }
 }

@@ -740,7 +740,7 @@ class Container implements IContainer, ArrayAccess
                 continue;
             }
 
-            $provider->register();
+            $provider->register($this);
 
             unset($this->unregisteredProviders[$className]);
 
