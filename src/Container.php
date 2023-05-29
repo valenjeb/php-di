@@ -564,6 +564,8 @@ class Container implements IContainer, ArrayAccess
         }
 
         $this->deferredProviders[] = get_class($provider);
+
+        $provider->init($this);
     }
 
     public function serviceProviderExists(string $provider): bool
