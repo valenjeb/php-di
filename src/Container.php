@@ -30,6 +30,7 @@ use function get_class;
 use function is_array;
 use function is_callable;
 use function is_string;
+use function method_exists;
 use function sprintf;
 use function trigger_error;
 
@@ -563,7 +564,11 @@ class Container implements IContainer, ArrayAccess
             $this->deferredProviders[] = get_class($provider);
         }
 
-        $provider->init($this);
+        if (! method_exists($provider, 'init')) {
+            return;
+        }
+
+        $this->call([$provider, 'init']);
     }
 
     public function serviceProviderExists(string $provider): bool

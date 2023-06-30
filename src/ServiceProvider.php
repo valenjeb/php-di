@@ -18,10 +18,6 @@ abstract class ServiceProvider implements IServiceProvider
      */
     public array $provides = [];
 
-    public function init(IContainer $di): void
-    {
-    }
-
     public function provides(string $key): bool
     {
         return in_array($key, $this->provides);

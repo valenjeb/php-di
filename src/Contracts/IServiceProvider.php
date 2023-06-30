@@ -7,14 +7,6 @@ namespace Devly\DI\Contracts;
 interface IServiceProvider
 {
     /**
-     * Initializes the service provider
-     *
-     * The init method is called immediately after the service provider
-     * is registered on the service provider the container.
-     */
-    public function init(IContainer $di): void;
-
-    /**
      * Determines whether the service provider provides the provided key name
      */
     public function provides(string $key): bool;
