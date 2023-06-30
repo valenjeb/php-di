@@ -21,8 +21,10 @@ use Devly\DI\Exceptions\OverwriteExistingServiceException;
 use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Helpers\Utils;
 use Devly\Repository;
+use Exception;
 use ReflectionClass;
 use ReflectionException;
+use Throwable;
 
 use function array_key_exists;
 use function class_exists;
@@ -30,7 +32,6 @@ use function func_get_args;
 use function get_class;
 use function is_array;
 use function is_string;
-use function method_exists;
 use function sprintf;
 use function trigger_error;
 
@@ -107,10 +108,10 @@ class Container implements IContainer, ArrayAccess
     /**
      * @param IContainer|array<string, mixed> $items             List of servo service definitions.
      * @param bool                            $autowiringEnabled Whether to services should be autowired
-     *                                                                                                                                            automatically
-     *                                                                                                                                            when not defined
+     *                                                                                                                                                                       automatically
+     *                                                                                                                                                                       when not defined
      * @param bool                            $shared            Whether the container services should be
-     *                                                                                                                                                                             shared by default
+     *                                                                                                                                                                                                                   shared by default
      */
     public function __construct($items = [], bool $autowiringEnabled = false, bool $shared = false)
     {
@@ -557,23 +558,46 @@ class Container implements IContainer, ArrayAccess
     /** @inheritdoc */
     public function registerServiceProvider($provider): void
     {
-        $this->providers[get_class($provider)] = $provider;
+        try {
+            $rc = new ReflectionClass($provider);
 
-        if ($provider instanceof IServiceProvider) {
+            if (
+                ! $rc->implementsInterface(IServiceProvider::class)
+                && ! $rc->implementsInterface(IBootableProvider::class)
+                && ! $rc->hasMethod('init')
+            ) {
+                throw new Exception();
+            }
+        } catch (Throwable $e) {
+            throw new ContainerException(sprintf(
+                'The #1 parameter of %s::%s() method expects an object implements one of "%s" or '
+                . '"%s" interfaces or implements "init" method.',
+                static::class,
+                __METHOD__,
+                IServiceProvider::class,
+                IBootableProvider::class
+            ));
+        }
+
+        if ($rc->implementsInterface(IServiceProvider::class)) {
+            $this->providers[get_class($provider)] = $provider;
+
             $this->unregisteredProviders[] = get_class($provider);
         }
 
-        if ($provider instanceof IBootableProvider) {
-            if (method_exists($provider, 'boot')) {
+        if ($rc->implementsInterface(IBootableProvider::class)) {
+            $this->providers[get_class($provider)] = $provider;
+
+            if ($rc->hasMethod('boot')) {
                 $this->bootableProviders[] = get_class($provider);
             }
 
-            if (method_exists($provider, 'bootDeferred')) {
+            if ($rc->hasMethod('bootDeferred')) {
                 $this->deferredProviders[] = get_class($provider);
             }
         }
 
-        if (! method_exists($provider, 'init')) {
+        if (! $rc->hasMethod('init')) {
             return;
         }
 
@@ -704,8 +728,8 @@ class Container implements IContainer, ArrayAccess
     }
 
     /**
-     * @param string|null $key     Key name to retrieve. If null, returns the underlying
-     *                                         config object (Devly\Repository).
+     * @param string|null $key     Key name to retrieve. If null, returns the
+     *                             underlying config object (Devly\Repository).
      * @param mixed       $default Default value to return if the provided key not found
      *
      * @return Repository|mixed

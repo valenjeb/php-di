@@ -8,6 +8,7 @@ use Closure;
 use Devly\DI\ContextualBindingBuilder;
 use Devly\DI\Definition;
 use Devly\DI\Exceptions\AliasNotFoundException;
+use Devly\DI\Exceptions\ContainerException;
 use Devly\DI\Exceptions\DefinitionNotFoundException;
 use Devly\DI\Exceptions\InvalidDefinitionException;
 use Devly\DI\Exceptions\NotFoundException;
@@ -85,14 +86,17 @@ interface IContainer
     /**
      * Retrieve an object or a value from the container.
      *
-     * The get() method will resolve an object only once and return the same instance of the object every
-     * time it'll be called.
-     * If the provided id name not exists in the container, and is a valid class name, the get method will
-     * try to resolve the class definition automatically and store it in the container.
+     * The get() method will resolve an object only once and return the same instance
+     * of the object every time it'll be called.
+     *
+     * If the provided id name not exists in the container, and is a valid class name,
+     * the get method will try to resolve the class definition automatically and store
+     * it in the container.
      *
      * @return mixed
      *
-     * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
+     * @throws NotFoundException If definition not found in the container, and it is
+     *                           could not be resolved automatically.
      * @throws ResolverException if error occurs during resolving.
      */
     public function get(string $key);
@@ -148,7 +152,11 @@ interface IContainer
     /**
      * Registers a service provider.
      *
-     * @param IServiceProvider|IBootableProvider $provider
+     * @param IServiceProvider|IBootableProvider|object $provider
+     *
+     * @throws ContainerException if the service provider does not implement one of
+     *                            IServiceProvider or IBootableProvider interface
+     *                            and dont have an init method.
      */
     public function registerServiceProvider($provider): void;
 

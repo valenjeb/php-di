@@ -349,6 +349,28 @@ class ContainerTest extends TestCase
         $this->assertEquals('foo', $this->container->getSafe('FakeService', 'foo'));
     }
 
+    public function testShouldThrowContainerExceptionIfInvalidServiceProvider(): void
+    {
+        $this->expectException(ContainerException::class);
+
+        $this->container->registerServiceProvider('foo'); // @phpstan-ignore-line
+    }
+
+    public function testRegisterProviderInitMethod(): void
+    {
+        $provider = new class {
+            public IContainer $container;
+
+            public function init(IContainer $container): void
+            {
+                $this->container = $container;
+            }
+        };
+
+        $this->container->registerServiceProvider($provider);
+        $this->assertEquals($this->container, $provider->container);
+    }
+
     public function testRegisterBootableServiceProvider(): void
     {
         $provider = new class implements IBootableProvider {
@@ -356,7 +378,7 @@ class ContainerTest extends TestCase
             public bool $isBooted      = false;
             public bool $isBootedDefer = false;
 
-            public function init(IContainer $di): void
+            public function init(): void
             {
                 $this->initialized = true;
             }
