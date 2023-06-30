@@ -19,7 +19,7 @@ class ServiceProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->container       = new Container();
-        $this->serviceProvider = new Provider();
+        $this->serviceProvider = new Provider($this->container);
     }
 
     public function testProvides(): void
@@ -30,7 +30,7 @@ class ServiceProviderTest extends TestCase
 
     public function testRegister(): void
     {
-        $this->serviceProvider->register($this->container);
+        $this->serviceProvider->register();
 
         $this->assertInstanceOf(Definition::class, $this->container->getDefinition(A::class));
     }

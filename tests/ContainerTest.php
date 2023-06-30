@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Devly\DI\Tests;
 
 use Devly\DI\Container;
+use Devly\DI\Contracts\IBootableProvider;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Definition;
 use Devly\DI\Exceptions\AliasNotFoundException;
@@ -15,7 +16,6 @@ use Devly\DI\Exceptions\DefinitionException;
 use Devly\DI\Exceptions\DefinitionNotFoundException;
 use Devly\DI\Exceptions\NotFoundException;
 use Devly\DI\Exceptions\ResolverException;
-use Devly\DI\ServiceProvider;
 use Devly\DI\Tests\Fake\A;
 use Devly\DI\Tests\Fake\B;
 use Devly\DI\Tests\Fake\C;
@@ -339,7 +339,7 @@ class ContainerTest extends TestCase
 
     public function testRegisterServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider());
+        $this->container->registerServiceProvider($this->container->call(Provider::class));
 
         $this->assertTrue($this->container->serviceProviderExists(Provider::class));
     }
@@ -351,7 +351,7 @@ class ContainerTest extends TestCase
 
     public function testRegisterBootableServiceProvider(): void
     {
-        $provider = new class extends ServiceProvider {
+        $provider = new class implements IBootableProvider {
             public bool $initialized   = false;
             public bool $isBooted      = false;
             public bool $isBootedDefer = false;
@@ -382,7 +382,7 @@ class ContainerTest extends TestCase
 
     public function testResolveObjectDefinedByServiceProvider(): void
     {
-        $this->container->registerServiceProvider(new Provider());
+        $this->container->registerServiceProvider($this->container->call(Provider::class));
 
         $this->assertTrue($this->container->has(A::class));
 

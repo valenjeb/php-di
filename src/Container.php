@@ -7,6 +7,7 @@ namespace Devly\DI;
 use ArrayAccess;
 use Closure;
 use Devly\DI\Contracts\Factory;
+use Devly\DI\Contracts\IBootableProvider;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\IResolver;
 use Devly\DI\Contracts\IServiceProvider;
@@ -28,7 +29,6 @@ use function class_exists;
 use function func_get_args;
 use function get_class;
 use function is_array;
-use function is_callable;
 use function is_string;
 use function method_exists;
 use function sprintf;
@@ -536,11 +536,15 @@ class Container implements IContainer, ArrayAccess
     }
 
     /**
+     * Registers a service provider.
+     *
      * @deprecated
      *
      * @see registerServiceProvider
+     *
+     * @param IServiceProvider|IBootableProvider $provider
      */
-    public function register(IServiceProvider $provider): void
+    public function register($provider): void
     {
         trigger_error(sprintf(
             '%1$s::register is deprecated and will be removed in v1.0 replace it with %1$s::registerServiceProvider',
@@ -550,18 +554,23 @@ class Container implements IContainer, ArrayAccess
         $this->registerServiceProvider($provider);
     }
 
-    public function registerServiceProvider(IServiceProvider $provider): void
+    /** @inheritdoc */
+    public function registerServiceProvider($provider): void
     {
         $this->providers[get_class($provider)] = $provider;
 
-        $this->unregisteredProviders[] = get_class($provider);
-
-        if (is_callable([$provider, 'boot'])) {
-            $this->bootableProviders[] = get_class($provider);
+        if ($provider instanceof IServiceProvider) {
+            $this->unregisteredProviders[] = get_class($provider);
         }
 
-        if (is_callable([$provider, 'bootDeferred'])) {
-            $this->deferredProviders[] = get_class($provider);
+        if ($provider instanceof IBootableProvider) {
+            if (method_exists($provider, 'boot')) {
+                $this->bootableProviders[] = get_class($provider);
+            }
+
+            if (method_exists($provider, 'bootDeferred')) {
+                $this->deferredProviders[] = get_class($provider);
+            }
         }
 
         if (! method_exists($provider, 'init')) {
@@ -743,7 +752,7 @@ class Container implements IContainer, ArrayAccess
                 continue;
             }
 
-            $provider->register($this);
+            $provider->register();
 
             unset($this->unregisteredProviders[$className]);
 

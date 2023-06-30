@@ -14,5 +14,5 @@ interface IServiceProvider
     /**
      * Register services provided by the service provider
      */
-    public function register(IContainer $di): void;
+    public function register(): void;
 }
