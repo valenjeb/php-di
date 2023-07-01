@@ -6,7 +6,7 @@ namespace Devly\DI\Tests\Fake;
 
 class C
 {
-    protected I $b;
+    public I $b;
 
     public function __construct(I $b)
     {

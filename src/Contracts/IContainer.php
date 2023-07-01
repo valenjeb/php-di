@@ -21,6 +21,9 @@ use Devly\Repository;
  */
 interface IContainer
 {
+    /** @param string|array<string, Closure|Definition|Factory> $definitions */
+    public function addDefinitions($definitions): self;
+
     /**
      * Set the container services to be shared by default
      */
@@ -156,7 +159,7 @@ interface IContainer
      *
      * @throws ContainerException if the service provider does not implement one of
      *                            IServiceProvider or IBootableProvider interface
-     *                            and dont have an init method.
+     *                            and don't have an init method.
      */
     public function registerServiceProvider($provider): void;
 
@@ -253,8 +256,8 @@ interface IContainer
     public function when($concrete): ContextualBindingBuilder;
 
     /**
-     * @param string|null $key     Key name to retrieve. If null, returns the underlying
-     *                             config object (Devly\Repository).
+     * @param string|null $key     Key name to retrieve. If null, returns the
+     *                             underlying config object (Devly\Repository).
      * @param mixed       $default Default value to return if the provided key not found
      *
      * @return Repository|mixed

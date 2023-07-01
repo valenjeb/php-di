@@ -88,6 +88,15 @@ class ContainerTest extends TestCase
         $this->container->define('foo', 'bar'); // @phpstan-ignore-line
     }
 
+    public function testAddDefinitionsFromFile(): void
+    {
+        $container = new Container([], true);
+
+        $container->addDefinitions(__DIR__ . '/definitions.php');
+
+        $this->assertInstanceOf(C::class, $container->get(C::class));
+    }
+
     public function testGetService(): void
     {
         $this->container->define('stdClass', static fn () => new stdClass());

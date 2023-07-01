@@ -135,6 +135,20 @@ class Container implements IContainer, ArrayAccess
         $this->alias(IContainer::class, static::class);
     }
 
+    /** @inheritdoc */
+    public function addDefinitions($definitions): self
+    {
+        if (is_string($definitions)) {
+            $definitions = (array) require $definitions;
+        }
+
+        foreach ($definitions as $name => $definition) {
+            $this->define($name, $definition);
+        }
+
+        return $this;
+    }
+
     /**
      * Set the container services to be shared by default
      */
