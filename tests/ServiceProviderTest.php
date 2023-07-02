@@ -19,7 +19,7 @@ class ServiceProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->container       = new Container();
-        $this->serviceProvider = new Provider($this->container);
+        $this->serviceProvider = $this->container->call(Provider::class);
     }
 
     public function testProvides(): void

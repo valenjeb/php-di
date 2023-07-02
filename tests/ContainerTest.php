@@ -368,16 +368,16 @@ class ContainerTest extends TestCase
     public function testRegisterProviderInitMethod(): void
     {
         $provider = new class {
-            public IContainer $container;
+            public bool $initialized;
 
-            public function init(IContainer $container): void
+            public function init(): void
             {
-                $this->container = $container;
+                $this->initialized = true;
             }
         };
 
         $this->container->registerServiceProvider($provider);
-        $this->assertEquals($this->container, $provider->container);
+        $this->assertTrue($provider->initialized);
     }
 
     public function testRegisterBootableServiceProvider(): void
