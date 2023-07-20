@@ -580,17 +580,17 @@ class Container implements IContainer, ArrayAccess
                 && ! $rc->implementsInterface(IBootableProvider::class)
                 && ! $rc->hasMethod('init')
             ) {
-                throw new Exception();
+                throw new ContainerException(sprintf(
+                    'The #1 parameter of %s::%s() method expects an object implements one of "%s" or '
+                    . '"%s" interfaces or implements "init" method.',
+                    static::class,
+                    __METHOD__,
+                    IServiceProvider::class,
+                    IBootableProvider::class
+                ));
             }
-        } catch (Throwable $e) {
-            throw new ContainerException(sprintf(
-                'The #1 parameter of %s::%s() method expects an object implements one of "%s" or '
-                . '"%s" interfaces or implements "init" method.',
-                static::class,
-                __METHOD__,
-                IServiceProvider::class,
-                IBootableProvider::class
-            ));
+        } catch (ReflectionException $e) {
+            throw new ContainerException($e->getMessage(), $e->getCode(), $e);
         }
 
         if ($rc->implementsInterface(IServiceProvider::class)) {

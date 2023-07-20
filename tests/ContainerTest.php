@@ -362,7 +362,7 @@ class ContainerTest extends TestCase
     {
         $this->expectException(ContainerException::class);
 
-        $this->container->registerServiceProvider('foo'); // @phpstan-ignore-line
+        $this->container->registerServiceProvider(new class(){}); // @phpstan-ignore-line
     }
 
     public function testRegisterProviderInitMethod(): void
