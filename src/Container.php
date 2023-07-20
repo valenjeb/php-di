@@ -572,6 +572,10 @@ class Container implements IContainer, ArrayAccess
     /** @inheritdoc */
     public function registerServiceProvider($provider): void
     {
+        if (is_string($provider)) {
+            $provider = $this->call($provider);
+        }
+
         try {
             $rc = new ReflectionClass($provider);
 

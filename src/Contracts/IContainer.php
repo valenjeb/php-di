@@ -155,7 +155,7 @@ interface IContainer
     /**
      * Registers a service provider.
      *
-     * @param IServiceProvider|IBootableProvider|object $provider
+     * @param IServiceProvider|IBootableProvider|object|class-string $provider
      *
      * @throws ContainerException if the service provider does not implement one of
      *                            IServiceProvider or IBootableProvider interface

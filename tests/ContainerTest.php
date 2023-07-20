@@ -362,7 +362,21 @@ class ContainerTest extends TestCase
     {
         $this->expectException(ContainerException::class);
 
-        $this->container->registerServiceProvider(new class(){}); // @phpstan-ignore-line
+        $this->container->registerServiceProvider(new class () {
+        });
+    }
+
+    public function testRegisterServiceProviderWithClassString(): void
+    {
+        $this->container->registerServiceProvider(Provider::class);
+        $this->assertTrue($this->container->serviceProviderExists(Provider::class));
+    }
+
+    public function testShouldThrowResolverExceptionIfProvidedServiceProviderClassStringIsInvalid(): void
+    {
+        $this->expectException(ResolverException::class);
+
+        $this->container->registerServiceProvider('foo');
     }
 
     public function testRegisterProviderInitMethod(): void
