@@ -607,16 +607,40 @@ class Container implements IContainer, ArrayAccess
             $this->providers[get_class($provider)] = $provider;
 
             if ($rc->hasMethod('boot')) {
+                $boot = $rc->getMethod('boot');
+                if (! $boot->isPublic() || $boot->isAbstract()) {
+                    throw new ContainerException(sprintf(
+                        'The service provider %s::boot() method is not invokable.',
+                        $provider
+                    ));
+                }
+
                 $this->bootableProviders[] = get_class($provider);
             }
 
             if ($rc->hasMethod('bootDeferred')) {
+                $bootDeferred = $rc->getMethod('bootDeferred');
+                if (! $bootDeferred->isPublic() || $bootDeferred->isAbstract()) {
+                    throw new ContainerException(sprintf(
+                        'The service provider %s::bootDeferred() method is not invokable.',
+                        $provider
+                    ));
+                }
+
                 $this->deferredProviders[] = get_class($provider);
             }
         }
 
         if (! $rc->hasMethod('init')) {
             return;
+        }
+
+        $init = $rc->getMethod('init');
+        if (! $init->isPublic() || $init->isAbstract()) {
+            throw new ContainerException(sprintf(
+                'The service provider %s::init() method is not invokable.',
+                $provider
+            ));
         }
 
         $this->call([$provider, 'init']);
