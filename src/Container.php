@@ -21,10 +21,8 @@ use Devly\DI\Exceptions\OverwriteExistingServiceException;
 use Devly\DI\Exceptions\ResolverException;
 use Devly\DI\Helpers\Utils;
 use Devly\Repository;
-use Exception;
 use ReflectionClass;
 use ReflectionException;
-use Throwable;
 
 use function array_key_exists;
 use function class_exists;
