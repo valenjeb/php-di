@@ -29,6 +29,7 @@ use function class_exists;
 use function func_get_args;
 use function get_class;
 use function is_array;
+use function is_readable;
 use function is_string;
 use function sprintf;
 use function trigger_error;
@@ -104,12 +105,12 @@ class Container implements IContainer, ArrayAccess
     private array $contextual = [];
 
     /**
-     * @param IContainer|array<string, mixed> $items             List of servo service definitions.
-     * @param bool                            $autowiringEnabled Whether to services should be autowired
-     *                                                                                                                                                                       automatically
-     *                                                                                                                                                                       when not defined
-     * @param bool                            $shared            Whether the container services should be
-     *                                                                                                                                                                                                                   shared by default
+     * @param IContainer|array<string, mixed>|string $items             List of service definitions, an instance of
+     *                                                                  IContainer or a filepath
+     * @param bool                                   $autowiringEnabled Whether the services should be autowired
+     *                                                                  automatically
+     * @param bool                                   $shared            Whether the container services should be shared
+     *                                                                  by default
      */
     public function __construct($items = [], bool $autowiringEnabled = false, bool $shared = false)
     {
@@ -118,11 +119,7 @@ class Container implements IContainer, ArrayAccess
         $this->resolver          = new Resolver($this);
         $this->config            = new Repository();
 
-        $items = $items instanceof IContainer ? $items->export() : $items;
-
-        foreach ($items as $name => $definition) {
-            $this->define($name, $definition);
-        }
+        $this->addDefinitions($items);
 
         $this->instance(static::class, $this);
 
@@ -136,8 +133,27 @@ class Container implements IContainer, ArrayAccess
     /** @inheritdoc */
     public function addDefinitions($definitions): self
     {
-        if (is_string($definitions)) {
+        if (empty($definitions)) {
+            return $this;
+        }
+
+        if ($definitions instanceof IContainer) {
+            $definitions = $definitions->export();
+        } elseif (is_string($definitions)) {
+            if (! is_readable($definitions)) {
+                throw new ContainerException(sprintf('Path "%s"" is not readable.', $definitions));
+            }
+
             $definitions = (array) require $definitions;
+        }
+
+        if (! is_array($definitions)) {
+            throw new ContainerException(sprintf(
+                'Definitions provided to %s::addDefinitions() must be an array, or an instance of "%s"'
+                . ' or a file path which returns an array.',
+                self::class,
+                IContainer::class,
+            ));
         }
 
         foreach ($definitions as $name => $definition) {
@@ -841,7 +857,6 @@ class Container implements IContainer, ArrayAccess
      * --------------------------------------------
      * ArrayAccess Interface Implementation
      * --------------------------------------------
-     * phpcs:disable SlevomatCodingStandard.TypeHints.ParameterTypeHint.MissingNativeTypeHint
      */
 
     /**
@@ -849,7 +864,7 @@ class Container implements IContainer, ArrayAccess
      *
      * @param string $offset
      */
-    public function offsetExists($offset): bool
+    public function offsetExists($offset): bool // phpcs:ignore
     {
         return $this->has($offset);
     }
@@ -861,7 +876,7 @@ class Container implements IContainer, ArrayAccess
      *
      * @return mixed
      */
-    public function offsetGet($offset)
+    public function offsetGet($offset) // phpcs:ignore
     {
         return $this->get($offset);
     }
@@ -872,7 +887,7 @@ class Container implements IContainer, ArrayAccess
      * @param string $offset
      * @param mixed  $value
      */
-    public function offsetSet($offset, $value): void
+    public function offsetSet($offset, $value): void // phpcs:ignore
     {
         $this->define($offset, $value);
     }
@@ -882,7 +897,7 @@ class Container implements IContainer, ArrayAccess
      *
      * @param string $offset
      */
-    public function offsetUnset($offset): void
+    public function offsetUnset($offset): void // phpcs:ignore
     {
         $this->forget($offset);
     }
