@@ -822,7 +822,7 @@ class Container implements IContainer, ArrayAccess
         foreach ($this->unregisteredProviders as $className) {
             $provider = $this->providers[$className];
 
-            if (empty($provider->provides)) {
+            if (! $provider->provides()) {
                 unset($this->unregisteredProviders[$className]);
 
                 continue;

@@ -16,11 +16,15 @@ abstract class ServiceProvider implements IServiceProvider
      *
      * @var string[]
      */
-    public array $provides = [];
+    protected array $provides = [];
     protected IContainer $container;
 
-    public function provides(string $key): bool
+    public function provides(?string $key = null): bool
     {
+        if ($key === null) {
+            return ! empty($this->provides);
+        }
+
         return in_array($key, $this->provides);
     }
 
