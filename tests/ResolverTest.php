@@ -73,7 +73,7 @@ class ResolverTest extends TestCase
     public function testResolveThrowsResolverExceptionIfInvalidClassNameOrCallback(): void
     {
         $this->expectException(ResolverException::class);
-        $this->expectErrorMessage('Class Fake does not exist');
+        $this->expectExceptionMessage('Class Fake does not exist');
 
         $this->resolver->resolve('Fake'); // @phpstan-ignore-line
     }

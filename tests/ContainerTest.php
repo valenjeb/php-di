@@ -69,7 +69,7 @@ class ContainerTest extends TestCase
     public function testDefineServiceThrowsContainerExceptionIfDefinitionExists(): void
     {
         $this->expectException(ContainerException::class);
-        $this->expectErrorMessage(
+        $this->expectExceptionMessage(
             'Key "foo" already defined in this container. Use the extend() method' .
             ' to extend its definition or override() to replace the existing definition.'
         );
@@ -81,7 +81,7 @@ class ContainerTest extends TestCase
     public function testDefineServiceThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
         $this->expectException(DefinitionException::class);
-        $this->expectErrorMessage(
+        $this->expectExceptionMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
@@ -157,7 +157,7 @@ class ContainerTest extends TestCase
     public function testDefineSharedThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
         $this->expectException(DefinitionException::class);
-        $this->expectErrorMessage(
+        $this->expectExceptionMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
@@ -167,7 +167,7 @@ class ContainerTest extends TestCase
     public function testDefineSharedThrowsContainerExceptionIfDefinitionExists(): void
     {
         $this->expectException(ContainerException::class);
-        $this->expectErrorMessage(
+        $this->expectExceptionMessage(
             'Key "foo" already defined in this container. Use the extend() method' .
             ' to extend its definition or override() to replace the existing definition.'
         );
@@ -186,17 +186,13 @@ class ContainerTest extends TestCase
 
         $this->container->override('stdClass', static fn () => new stdClass());
 
-        $this->expectError();
-        $this->expectErrorMessage('Undefined property: stdClass::$foo');
-
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $foo = $this->container->get('stdClass')->foo;
+        $this->assertTrue(! isset($this->container->get('stdClass')->foo));
     }
 
     public function testOverrideThrowsDefinitionExceptionIfIsNotCallableOrClassName(): void
     {
         $this->expectException(DefinitionException::class);
-        $this->expectErrorMessage(
+        $this->expectExceptionMessage(
             'Factory concrete definition must be a callable or a fully qualified class name.'
         );
 
