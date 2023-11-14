@@ -16,6 +16,7 @@
   "require": {
     "php": "^7.4",
     "devly/repository": "^1.0"
+    "php": ">=8.1",
   },
   "require-dev": {
     "phpstan/phpstan": "^1.10",
