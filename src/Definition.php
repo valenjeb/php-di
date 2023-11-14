@@ -14,6 +14,7 @@ use ReflectionException;
 
 use function is_int;
 use function str_replace;
+use function str_starts_with;
 
 class Definition
 {
@@ -36,8 +37,8 @@ class Definition
      */
     private array $setup = [];
     /** @var array<string, string|mixed>|null */
-    private ?array $return = null;
-    private bool $shared   = false;
+    private array|null $return = null;
+    private bool $shared       = false;
 
     /**
      * @param callable|class-string<T> $concrete
@@ -47,14 +48,14 @@ class Definition
      *
      * @template T of object
      */
-    public function __construct($concrete, array $args = [])
+    public function __construct(callable|string $concrete, array $args = [])
     {
         try {
             Obj::createReflection($concrete);
             $this->concrete = $concrete;
 
             $this->setParams($args);
-        } catch (ReflectionException $e) {
+        } catch (ReflectionException) {
             throw new InvalidDefinitionException(
                 'Factory concrete definition must be a callable or a fully qualified class name.'
             );
@@ -64,13 +65,11 @@ class Definition
     /**
      * @param array<string|int, mixed> $args
      *
-     * @return mixed
-     *
      * @throws DefinitionException if setup or return action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
      * @throws ResolverException   if error occurs during resolving.
      */
-    public function resolve(Container $container, array $args = [])
+    public function resolve(Container $container, array $args = []): mixed
     {
         $object = $container->call($this->concrete, Utils::arrMergeTree($args, $this->parameters));
 
@@ -91,21 +90,19 @@ class Definition
      * @param string $action Property (prefixed with $) or method name (prefixed with @) to return
      * @param mixed  $value  Value to pass to the resolver if return action is method
      *
-     * @return mixed|void
-     *
      * @throws ResolverException   if error occurs during resolving.
      * @throws DefinitionException if return action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
      */
-    protected function doReturnAction(IContainer $container, object $object, string $action, $value = null)
+    protected function doReturnAction(IContainer $container, object $object, string $action, mixed $value = null): mixed
     {
-        if (Utils::strStartsWith($action, '$')) {
+        if (str_starts_with($action, '$')) {
             $property = str_replace('$', '', $action);
 
             return $object->$property;
         }
 
-        if (! Utils::strStartsWith($action, '@')) {
+        if (! str_starts_with($action, '@')) {
             $this->throwInvalidActionName();
         }
 
@@ -123,16 +120,20 @@ class Definition
      * @throws DefinitionException if action is not a property name (prefixed with $)
      *                             or a method name (prefixed with @).
      */
-    private function doSetupAction(Container $container, object $object, $action, $value = null): void
-    {
-        if (Utils::strStartsWith($action, '$')) {
+    private function doSetupAction(
+        Container $container,
+        object $object,
+        string|callable $action,
+        mixed $value = null
+    ): void {
+        if (str_starts_with($action, '$')) {
             $action          = str_replace('$', '', $action);
             $object->$action = $value;
 
             return;
         }
 
-        if (! Utils::strStartsWith($action, '@')) {
+        if (! str_starts_with($action, '@')) {
             $this->throwInvalidActionName();
         }
 
@@ -148,18 +149,14 @@ class Definition
         return $this;
     }
 
-    /**
-     * @param string|object $key   The parameter key name or an object.
-     * @param mixed         $value
-     */
-    public function setParam($key, $value = null): self
+    public function setParam(string|int $key, mixed $value = null): self
     {
         $this->parameters[$key] = $value;
 
         return $this;
     }
 
-    /** @param array<string|int, mixed> $args */
+    /** @param array<array-key, mixed> $args */
     public function setParams(array $args): self
     {
         foreach ($args as $key => $value) {
@@ -174,11 +171,7 @@ class Definition
         return $this;
     }
 
-    /**
-     * @param string|callable $action
-     * @param mixed           $value
-     */
-    public function addSetup($action, $value = []): self
+    public function addSetup(string|callable $action, mixed $value = []): self
     {
         $this->setup[] = [
             'action' => $action,
@@ -188,11 +181,7 @@ class Definition
         return $this;
     }
 
-    /**
-     * @param string|callable $action
-     * @param mixed           $value
-     */
-    public function return($action, $value = []): self
+    public function return(callable|string $action, mixed $value = []): self
     {
         $this->return = [
             'action' => $action,

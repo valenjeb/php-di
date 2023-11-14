@@ -6,11 +6,8 @@ namespace Devly\DI\Tests\Fake;
 
 class A
 {
-    public ?string $text;
-
-    public function __construct(?string $text)
+    public function __construct(public string|null $text)
     {
-        $this->text = $text;
     }
 
     public function getText(): string

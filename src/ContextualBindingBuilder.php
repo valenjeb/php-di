@@ -9,16 +9,11 @@ use Devly\DI\Contracts\IContainer;
 
 class ContextualBindingBuilder
 {
-    /** @var string|string[] */
-    protected $concrete;
-    protected IContainer $container;
     protected string $needs;
 
     /** @param string|string[] $concrete */
-    public function __construct(IContainer $container, $concrete)
+    public function __construct(protected IContainer $container, protected array|string $concrete)
     {
-        $this->container = $container;
-        $this->concrete  = $concrete;
     }
 
     public function needs(string $abstract): self
@@ -28,8 +23,7 @@ class ContextualBindingBuilder
         return $this;
     }
 
-    /** @param Closure|string $implementation */
-    public function give($implementation): void
+    public function give(Closure|string $implementation): void
     {
         foreach ((array) $this->concrete as $concrete) {
             $this->container->addContextualBinding($concrete, $this->needs, $implementation);
@@ -38,10 +32,8 @@ class ContextualBindingBuilder
 
     /**
      * Specify the configuration item to bind as a primitive.
-     *
-     * @param mixed $default
      */
-    public function giveConfig(string $key, $default = null): void
+    public function giveConfig(string $key, mixed $default = null): void
     {
         $this->give(static fn (Container $container) => $container->config($key, $default));
     }

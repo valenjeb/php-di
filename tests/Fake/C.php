@@ -6,10 +6,7 @@ namespace Devly\DI\Tests\Fake;
 
 class C
 {
-    public I $b;
-
-    public function __construct(I $b)
+    public function __construct(public I $b)
     {
-        $this->b = $b;
     }
 }

@@ -7,10 +7,6 @@ namespace Devly\DI\Helpers;
 use function array_intersect_key;
 use function call_user_func_array;
 use function is_array;
-use function strlen;
-use function strncmp;
-use function strpos;
-use function substr;
 
 class Utils
 {
@@ -20,35 +16,11 @@ class Utils
      * @param callable[] $callbacks
      * @param mixed      $args,...
      */
-    public static function invokeBatch(iterable $callbacks, ...$args): void
+    public static function invokeBatch(iterable $callbacks, mixed ...$args): void
     {
         foreach ($callbacks as $callback) {
             call_user_func_array($callback, $args);
         }
-    }
-
-    /**
-     * Starts the $haystack string with the prefix $needle?
-     */
-    public static function strStartsWith(string $haystack, string $needle): bool
-    {
-        return strncmp($haystack, $needle, strlen($needle)) === 0;
-    }
-
-    /**
-     * Ends the $haystack string with the suffix $needle?
-     */
-    public static function strEndsWith(string $haystack, string $needle): bool
-    {
-        return $needle === '' || substr($haystack, -strlen($needle)) === $needle;
-    }
-
-    /**
-     * Does $haystack contain $needle?
-     */
-    public static function strContains(string $haystack, string $needle): bool
-    {
-        return strpos($haystack, $needle) !== false;
     }
 
     /**

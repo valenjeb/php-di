@@ -22,7 +22,7 @@ use Devly\Repository;
 interface IContainer
 {
     /** @param string|array<string, Closure|Definition|Factory> $definitions */
-    public function addDefinitions($definitions): self;
+    public function addDefinitions(IContainer|array|string $definitions): self;
 
     /**
      * Set the container services to be shared by default
@@ -36,48 +36,54 @@ interface IContainer
 
     /**
      * Store an instance of a service in the container
-     *
-     * @param mixed $value
      */
-    public function instance(string $key, $value): void;
+    public function instance(string $key, mixed $value): void;
 
     /**
      * Define an object or a value in the container.
      *
-     * @param Definition|callable|string|null $value
+     * @param Definition|Factory|callable|class-string<T>|null $value
      *
      * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
      * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
+     *
+     * @template T of object
      */
-    public function define(string $key, $value = null): Definition;
+    public function define(string $key, mixed $value = null): Definition;
 
     /**
      * Define or override an object or a value in the container.
      *
-     * @param mixed $value
+     * @param Definition|Factory|callable|class-string<T>|null $value
      *
      * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
+     *
+     * @template T of object
      */
-    public function override(string $key, $value = null): Definition;
+    public function override(string $key, mixed $value = null): Definition;
 
     /**
      * Add a shared factory definition.
      *
-     * @param Definition|callable|string|null $value
+     * @param Definition|Factory|callable|class-string<T>|null $value
      *
      * @throws OverwriteExistingServiceException If an item with the given key already exists in the container.
      * @throws InvalidDefinitionException        If provided value is not a callable or a fully qualified class name.
+     *
+     * @template T of object
      */
-    public function defineShared(string $key, $value = null): Definition;
+    public function defineShared(string $key, mixed $value = null): Definition;
 
     /**
      * Add a shared factory definition.
      *
-     * @param Definition|callable|string $value
+     * @param Definition|Factory|callable|class-string<T>|null $value
      *
      * @throws InvalidDefinitionException If provided value is not a callable or a fully qualified class name.
+     *
+     * @template T of object
      */
-    public function overrideShared(string $key, $value = null): Definition;
+    public function overrideShared(string $key, mixed $value = null): Definition;
 
     /**
      * Extend existing factory definition.
@@ -96,24 +102,18 @@ interface IContainer
      * the get method will try to resolve the class definition automatically and store
      * it in the container.
      *
-     * @return mixed
-     *
      * @throws NotFoundException If definition not found in the container, and it is
      *                           could not be resolved automatically.
      * @throws ResolverException if error occurs during resolving.
      */
-    public function get(string $key);
+    public function get(string $key): mixed;
 
     /**
      * Retrieve an object or a value from the container or return default value if not found
      *
-     * @param mixed $default
-     *
-     * @return mixed|null
-     *
      * @throws ResolverException if error occurred during resolve operation.
      */
-    public function getSafe(string $key, $default = null);
+    public function getSafe(string $key, mixed $default = null): mixed;
 
     /**
      * Resolve an item in the container.
@@ -124,12 +124,10 @@ interface IContainer
      *
      * @param string $key The service name to resolve.
      *
-     * @return mixed
-     *
      * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
      * @throws ResolverException if error occurred during resolve operation.
      */
-    public function make(string $key);
+    public function make(string $key): mixed;
 
     /**
      * Resolve an item in the container with a list of args
@@ -137,12 +135,10 @@ interface IContainer
      * @param string               $key  The service name to resolve.
      * @param array<string, mixed> $args List of args to pass to the resolver.
      *
-     * @return mixed
-     *
      * @throws NotFoundException If definition not found in the container and it is could not be resolved automatically.
      * @throws ResolverException if error occurred during resolve operation.
      */
-    public function makeWith(string $key, array $args);
+    public function makeWith(string $key, array $args): mixed;
 
     /**
      * Add a named alias to a service in the container
@@ -161,7 +157,7 @@ interface IContainer
      *                            IServiceProvider or IBootableProvider interface
      *                            and don't have an init method.
      */
-    public function registerServiceProvider($provider): void;
+    public function registerServiceProvider(mixed $provider): void;
 
     /**
      * Run boot() method for each bootable service provider set in the container.
@@ -186,14 +182,12 @@ interface IContainer
     /**
      * Resolve a callable or an object using the container
      *
-     * @param callable|string          $callbackOrClassName
+     * @param callable|class-string    $callbackOrClassName
      * @param array<string|int, mixed> $args
-     *
-     * @return mixed
      *
      * @throws ResolverException
      */
-    public function call($callbackOrClassName, array $args = []);
+    public function call(callable|string $callbackOrClassName, array $args = []): mixed;
 
     /**
      * Drop a service definition and its instance from the container
@@ -219,10 +213,8 @@ interface IContainer
      *
      * Useful when two classes that utilize the same interface, but you wish to inject
      * different implementations into each class.
-     *
-     * @param Closure|string $implementation
      */
-    public function addContextualBinding(string $concrete, string $needs, $implementation): void;
+    public function addContextualBinding(string $concrete, string $needs, Closure|string $implementation): void;
 
     /**
      * Retrieves contextual bindings for the provided abstract name
@@ -253,16 +245,16 @@ interface IContainer
      *
      * @param string|string[] $concrete
      */
-    public function when($concrete): ContextualBindingBuilder;
+    public function when(string|array $concrete): ContextualBindingBuilder;
 
     /**
      * @param string|null $key     Key name to retrieve. If null, returns the
      *                             underlying config object (Devly\Repository).
      * @param mixed       $default Default value to return if the provided key not found
      *
-     * @return Repository|mixed
+     * @return ($key is string ? mixed : Repository)
      */
-    public function config(?string $key = null, $default = null);
+    public function config(string|null $key = null, mixed $default = null): mixed;
 
     /**
      * Get a service factory definition

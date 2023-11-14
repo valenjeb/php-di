@@ -19,7 +19,7 @@ abstract class ServiceProvider implements IServiceProvider
     protected array $provides = [];
     protected IContainer $container;
 
-    public function provides(?string $key = null): bool
+    public function provides(string|null $key = null): bool
     {
         if ($key === null) {
             return ! empty($this->provides);

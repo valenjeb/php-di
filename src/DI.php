@@ -9,12 +9,14 @@ use Devly\DI\Exceptions\InvalidDefinitionException;
 class DI
 {
     /**
-     * @param callable|string          $definition
+     * @param callable|class-string<T> $definition
      * @param array<string|int, mixed> $parameters
      *
      * @throws InvalidDefinitionException
+     *
+     * @template T of object
      */
-    public static function factory($definition, array $parameters = []): Definition
+    public static function factory(callable|string $definition, array $parameters = []): Definition
     {
         return new Definition($definition, $parameters);
     }

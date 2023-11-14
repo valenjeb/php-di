@@ -16,7 +16,7 @@ use function gettype;
 use function is_array;
 use function is_callable;
 use function is_string;
-use function strpos;
+use function str_contains;
 
 class Obj
 {
@@ -29,8 +29,9 @@ class Obj
      *
      * @template T of object
      */
-    public static function createReflection($definition)
-    {
+    public static function createReflection(
+        callable|string $definition
+    ): ReflectionMethod|ReflectionClass|ReflectionFunction {
         if (is_callable($definition)) {
             $definition = self::parseDefinition($definition);
 
@@ -39,10 +40,6 @@ class Obj
             }
 
             return new ReflectionFunction($definition);
-        }
-
-        if (is_array($definition)) {
-            return new ReflectionMethod(...$definition);
         }
 
         return new ReflectionClass($definition);
@@ -55,8 +52,9 @@ class Obj
      *
      * @template T of object
      */
-    public static function getReflectionParameters($reflection): array
-    {
+    public static function getReflectionParameters(
+        ReflectionFunction|ReflectionMethod|ReflectionClass $reflection
+    ): array {
         if ($reflection instanceof ReflectionClass) {
             if (! $reflection->isInstantiable()) {
                 return [];
@@ -89,8 +87,8 @@ class Obj
      * @template T of object
      */
     public static function getMethods(
-        $class,
-        ?int $filter = null,
+        ReflectionClass|string $class,
+        int|null $filter = null,
         bool $includeParents = false,
         bool $includeTraits = false
     ): array {
@@ -130,7 +128,7 @@ class Obj
      *
      * @param mixed $value The value to be checked
      */
-    public static function getType($value): string
+    public static function getType(mixed $value): string
     {
         $type = gettype($value);
 
@@ -147,7 +145,7 @@ class Obj
             case 'object':
                 try {
                     return (new ReflectionClass($value))->getName();
-                } catch (ReflectionException $e) {
+                } catch (ReflectionException) {
                     return 'object';
                 }
             case 'string':
@@ -172,13 +170,15 @@ class Obj
     /**
      * @internal
      *
-     * @param mixed $definition
+     * @param T $definition
      *
-     * @return array<string, string>|string|mixed
+     * @return (T is string ? array{} : T)
+     *
+     * @template T of mixed
      */
-    final protected static function parseDefinition($definition)
+    final protected static function parseDefinition(mixed $definition): mixed
     {
-        if (is_string($definition) && strpos($definition, '::') !== false) {
+        if (is_string($definition) && str_contains($definition, '::')) {
             $definition = explode('::', $definition);
         }
 

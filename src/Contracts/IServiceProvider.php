@@ -12,7 +12,7 @@ interface IServiceProvider
      * @param string|null $key Name of service to check or null to check whether
      *                         the provider is empty.
      */
-    public function provides(?string $key = null): bool;
+    public function provides(string|null $key = null): bool;
 
     /**
      * Register services provided by the service provider

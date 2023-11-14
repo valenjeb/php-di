@@ -6,11 +6,8 @@ namespace Devly\DI;
 
 class Reference
 {
-    protected string $target;
-
-    public function __construct(string $target)
+    public function __construct(protected string $target)
     {
-        $this->target = $target;
     }
 
     public function getTarget(): string

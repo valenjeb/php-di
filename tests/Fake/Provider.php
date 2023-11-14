@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Devly\DI\Tests\Fake;
 
-use Devly\DI\Contracts\IContainer;
 use Devly\DI\ServiceProvider;
 
 class Provider extends ServiceProvider

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Devly\DI;
 
-use Closure;
 use Devly\DI\Contracts\Factory;
 use Devly\DI\Contracts\IContainer;
 use Devly\DI\Contracts\IResolver;
@@ -17,7 +16,6 @@ use ReflectionFunction;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
-use Reflector;
 use Throwable;
 
 use function array_filter;
@@ -27,35 +25,33 @@ use function class_exists;
 use function class_implements;
 use function class_parents;
 use function explode;
-use function get_class;
+use function gettype;
 use function in_array;
 use function is_callable;
 use function is_string;
 use function sprintf;
-use function strpos;
+use function str_starts_with;
 
 class Resolver implements IResolver
 {
-    protected IContainer $container;
-
-    public function __construct(IContainer $container)
+    public function __construct(protected IContainer $container)
     {
-        $this->container = $container;
     }
 
-    /**
-     * @param callable|class-string<T>|ReflectionClass<T>|ReflectionMethod|ReflectionFunction $definition
-     * @param array<string|int, mixed>                                                        $args
-     *
-     * @return mixed
-     *
-     * @throws ResolverException
-     *
-     * @template T of object
-     */
-    public function resolve($definition, array $args = [])
-    {
-        $reflection = $this->getReflection($definition);
+    /** @inheritdoc */
+    public function resolve(
+        callable|string|ReflectionClass|ReflectionMethod|ReflectionFunction $definition,
+        array $args = []
+    ): mixed {
+        try {
+            $reflection = $this->getReflection($definition);
+        } catch (ResolverException) {
+            $message = 'The #1 %s::resolver() method parameter must be an instance of ReflectionClass,'
+                . ' ReflectionMethod, ReflectionFunction, a fully qualified class name string or a callable.'
+                . ' Provided %s.';
+
+            throw new ResolverException(sprintf($message, self::class, gettype($definition)));
+        }
 
         if ($reflection instanceof ReflectionClass) {
             return $this->resolveClassDefinition($reflection, $args);
@@ -71,15 +67,7 @@ class Resolver implements IResolver
             return $this->resolveMethodDefinition($reflection, $obj, $args);
         }
 
-        if ($reflection instanceof ReflectionFunction) {
-            return $this->resolveFunctionDefinition($reflection, $args);
-        }
-
-        // @phpstan-ignore-next-line
-        $message = 'The first %s::resolver() parameter can be an instance of ReflectionClass, ReflectionMethod'
-                 . ' or ReflectionFunction. Provided %s';
-
-        throw new ResolverException(sprintf($message, self::class, get_class($reflection)));
+        return $this->resolveFunctionDefinition($reflection, $args);
     }
 
     /**
@@ -152,23 +140,24 @@ class Resolver implements IResolver
     }
 
     /**
-     * @param string|object|null       $object
-     * @param array<string|int, mixed> $args
-     *
-     * @return mixed
+     * @param class-string|object|null $object
+     * @param array<array-key, mixed>  $args
      *
      * @throws ResolverException
      * @throws FailedResolveParameterException
      */
-    private function resolveMethodDefinition(ReflectionMethod $method, $object = null, array $args = [])
-    {
+    private function resolveMethodDefinition(
+        ReflectionMethod $method,
+        string|object|null $object = null,
+        array $args = []
+    ): mixed {
         if ($method->isStatic()) {
             $object = null;
         } else {
             if (is_string($object)) {
                 try {
                     $class  = new ReflectionClass($object);
-                    $object = $this->resolveClassDefinition($class, []);
+                    $object = $this->resolveClassDefinition($class);
                 } catch (Throwable $e) {
                     throw new ResolverException(sprintf(
                         "Method %s::%s() could not be invoked because it's declaring class could not be instantiated.",
@@ -226,11 +215,9 @@ class Resolver implements IResolver
     /**
      * @param array<string, mixed> $args
      *
-     * @return mixed
-     *
      * @throws FailedResolveParameterException
      */
-    private function resolveParameter(ReflectionParameter $parameter, array $args = [])
+    private function resolveParameter(ReflectionParameter $parameter, array $args = []): mixed
     {
         $reflectionNamedType = $parameter->getType();
 
@@ -306,11 +293,9 @@ class Resolver implements IResolver
     /**
      * @param array<string, mixed> $args
      *
-     * @return mixed
-     *
      * @throws ResolverException
      */
-    private function resolveFunctionDefinition(ReflectionFunction $function, array $args = [])
+    private function resolveFunctionDefinition(ReflectionFunction $function, array $args = []): mixed
     {
         try {
             $args = $this->resolveParameters($function->getParameters(), $args);
@@ -324,19 +309,16 @@ class Resolver implements IResolver
         return $function->invokeArgs($args);
     }
 
-    /**
-     * @param mixed $value
-     *
-     * @return mixed
-     *
-     * @throws FailedResolveParameterException
-     */
-    private function checkProvidedValue(ReflectionParameter $param, ?ReflectionNamedType $namedType, $value)
-    {
+    /** @throws FailedResolveParameterException */
+    private function checkProvidedValue(
+        ReflectionParameter $param,
+        ReflectionNamedType|null $namedType,
+        mixed $value
+    ): mixed {
         if ($value instanceof Reference) {
             try {
                 $value = $this->container->get($value->getTarget());
-            } catch (Throwable $e) {
+            } catch (Throwable) {
                 $value = null;
             }
         }
@@ -369,7 +351,7 @@ class Resolver implements IResolver
     }
 
     /**
-     * @param class-string<T>|callable-string|Closure|Reflector $definition
+     * @param class-string<T>|callable|ReflectionClass<T>|ReflectionFunction|ReflectionMethod $definition
      *
      * @return ReflectionClass<T>|ReflectionFunction|ReflectionMethod
      *
@@ -377,7 +359,7 @@ class Resolver implements IResolver
      *
      * @template T of object
      */
-    protected function getReflection($definition)
+    protected function getReflection(mixed $definition): ReflectionClass|ReflectionFunction|ReflectionMethod
     {
         try {
             if (
@@ -414,7 +396,7 @@ class Resolver implements IResolver
         $injects = array_filter(
             $methods,
             static function ($method) {
-                return strpos($method->getName(), 'inject') === 0 && ! $method->isAbstract();
+                return str_starts_with($method->getName(), 'inject') && ! $method->isAbstract();
             }
         );
 

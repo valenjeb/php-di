@@ -73,7 +73,11 @@ class ResolverTest extends TestCase
     public function testResolveThrowsResolverExceptionIfInvalidClassNameOrCallback(): void
     {
         $this->expectException(ResolverException::class);
-        $this->expectExceptionMessage('Class "Fake" does not exist');
+        $this->expectExceptionMessage(
+            'The #1 Devly\DI\Resolver::resolver() method parameter must be an instance of ReflectionClass,'
+            . ' ReflectionMethod, ReflectionFunction, a fully qualified class name string or a callable.'
+            . ' Provided string.'
+        );
 
         $this->resolver->resolve('Fake'); // @phpstan-ignore-line
     }
