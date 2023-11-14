@@ -4,31 +4,31 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7c451e4fe92f270879cd98872f46d0f7",
+    "content-hash": "744598cab75feb32d2983fe2adffec75",
     "packages": [
         {
             "name": "devly/repository",
-            "version": "1.0.0",
+            "version": "1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/valenjeb/repository.git",
-                "reference": "51b8397e30eccc68e6b9d658b3a1a7b36eda9500"
+                "reference": "c45a6a01ef7e5d16ab8df02fda7c918e95f5e35b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/valenjeb/repository/zipball/51b8397e30eccc68e6b9d658b3a1a7b36eda9500",
-                "reference": "51b8397e30eccc68e6b9d658b3a1a7b36eda9500",
+                "url": "https://api.github.com/repos/valenjeb/repository/zipball/c45a6a01ef7e5d16ab8df02fda7c918e95f5e35b",
+                "reference": "c45a6a01ef7e5d16ab8df02fda7c918e95f5e35b",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "php": "^7.4 || ^8.0"
+                "php": ">=8.1"
             },
             "require-dev": {
                 "dealerdirect/phpcodesniffer-composer-installer": "^0.7.2",
                 "devly/coding-standard": "^1.0",
-                "phpstan/phpstan": "^1.8",
-                "phpunit/phpunit": "^9.5"
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^10.4"
             },
             "type": "library",
             "autoload": {
@@ -40,9 +40,9 @@
             "description": "PHP data repository object with array access using dot notation",
             "support": {
                 "issues": "https://github.com/valenjeb/repository/issues",
-                "source": "https://github.com/valenjeb/repository/tree/1.0.0"
+                "source": "https://github.com/valenjeb/repository/tree/1.1.0"
             },
-            "time": "2022-10-25T10:32:43+00:00"
+            "time": "2023-11-13T10:35:46+00:00"
         }
     ],
     "packages-dev": [
@@ -2118,8 +2118,8 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^7.4"
+        "php": ">=8.1"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.6.0"
 }
